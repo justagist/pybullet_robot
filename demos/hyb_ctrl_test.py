@@ -1,18 +1,12 @@
 from collections import deque
 import numpy as np
 import pybullet as pb
-from pybullet_robot.worlds import SimpleWorld
+from pybullet_robot.worlds import SimpleWorld, add_PyB_models_to_path
 from pybullet_robot.robots import PandaArm
 from pybullet_robot.controllers import OSHybridController
-import os
 import time
 import matplotlib.pyplot as plt
 import threading
-
-table_path = os.path.dirname(os.path.abspath(__file__)) + \
-    '/../src/pybullet_robot/worlds/models/table.urdf'
-plane_path = os.path.dirname(os.path.abspath(__file__)) + \
-    '/../src/pybullet_robot/worlds/models/plane.urdf'
 
 
 def plot_thread():
@@ -20,13 +14,8 @@ def plot_thread():
     plt.ion()
     while True:
         plt.clf()
-        # plt.subplot(, 1, 1)
-        # plt.plot(fx_deque, 'r', label='x')
-        # plt.ylim([0.3, 0.6])
-        # plt.subplot(2, 1, 2)
         plt.plot(fx_deque, 'r', label='x')
         plt.plot(fy_deque, 'g', label='y')
-        # plt.ylim([-0.15, 0])
         plt.plot(fz_deque, 'b', label='z')
         plt.legend()
         plt.draw()
@@ -36,10 +25,15 @@ def plot_thread():
 
 if __name__ == "__main__":
     robot = PandaArm()
-    plane = pb.loadURDF(plane_path)
-    table = pb.loadURDF(table_path, useFixedBase=True, globalScaling=0.5)
+
+    add_PyB_models_to_path()
+
+    plane = pb.loadURDF('plane.urdf')
+    table = pb.loadURDF('table/table.urdf',
+                        useFixedBase=True, globalScaling=0.5)
+    cube = pb.loadURDF('cube_small.urdf', useFixedBase=True, globalScaling=1.)
     pb.resetBasePositionAndOrientation(
-        table, [0.6, 0., 0.3], [0, 0, -0.707, 0.707])
+        table, [0.4, 0., 0.0], [0, 0, -0.707, 0.707])
 
     objects = {'plane': plane,
                'table': table}

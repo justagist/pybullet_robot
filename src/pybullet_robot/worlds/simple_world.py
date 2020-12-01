@@ -17,7 +17,7 @@ class WorldObjects(object):
         return getattr(self, key)
 
 
-class SimpleWorld:
+class SimpleWorld(object):
 
     def __init__(self, robot, other_objects={}):
 

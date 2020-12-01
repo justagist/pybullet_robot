@@ -15,10 +15,10 @@ class BulletRobot(object):
         :type uid: int
         """
 
-        # if uid is None:
+        if uid is None:
+            uid = pb.connect(pb.GUI)
         #     uid = pb.connect(pb.SHARED_MEMORY)
         #     if uid < 0:
-        uid = pb.connect(pb.GUI_SERVER)
 
         self._uid = uid
         pb.resetSimulation(physicsClientId=self._uid)
