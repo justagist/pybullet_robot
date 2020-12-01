@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package>
+  <name>pybullet_robot</name>
+  <version>0.0.1</version>
+  <description>
+    PyBullet ROBOT package: Unified python interface for robot simulations in PyBullet.
+  </description>
+
+  <maintainer email="sxs1412@bham.ac.uk">
+    Saif Sidhik
+  </maintainer>
+  <license>todo</license>
+  <author>Saif Sidhik</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>
