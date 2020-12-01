@@ -69,7 +69,7 @@ class BulletRobot(object):
 
         self._joint_limits = self.get_joint_limits()
 
-        self._ft_joints = [self._all_joints[-1]]
+        self._ft_joints = [self._movable_joints[-1]]
 
         # by default, set FT sensor at last fixed joint
         self.set_ft_sensor_at(self._ft_joints[0])
@@ -86,7 +86,7 @@ class BulletRobot(object):
             self._ft_joints.remove(joint_id)
         elif joint_id not in self._ft_joints and enable:
             self._ft_joints.append(joint_id)
-
+        print ("FT sensor at joint", joint_id)
         pb.enableJointForceTorqueSensor(self._id, joint_id, enable, self._uid)
 
     def __del__(self):

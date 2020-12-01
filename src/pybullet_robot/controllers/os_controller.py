@@ -1,20 +1,20 @@
 import threading
 import numpy as np
 import time
+import pybullet as pb
 
 
 class OSControllerBase(object):
 
     def __init__(self, robot, config, break_condition=None):
 
-        self._robot = robot
+        self._robot = robot # robot sim should not be in real-time. Step simulation will be called by controller.
         self._P_pos = np.diag(config['P_pos'])
         self._D_pos = np.diag(config['D_pos'])
 
         self._P_ori = np.diag(config['P_ori'])
         self._D_ori = np.diag(config['D_ori'])
 
-        self._ctrl_rate = float(config['rate'])
 
         self._error_thresh = config['error_thresh']
         self._start_err = config['start_err']
@@ -30,6 +30,14 @@ class OSControllerBase(object):
 
         self._ctrl_thread = threading.Thread(target=self._control_thread)
         self._mutex = threading.Lock()
+
+        self._sim_timestep = pb.getPhysicsEngineParameters()['fixedTimeStep']
+        self._sim_time = 0.0
+
+        if 'rate' not in config:
+            self._ctrl_rate = 1./self._sim_timestep
+        else:
+            self._ctrl_rate = float(config['rate'])
 
     def update_goal(self):
         """
@@ -69,6 +77,7 @@ class OSControllerBase(object):
                 self._robot.exec_torque_cmd(tau)
 
                 self._robot.step_if_not_rtsim()
+                self._sim_time += self._sim_timestep
                 self._mutex.release()
 
                 # self._rate.sleep()
@@ -95,5 +104,5 @@ class OSControllerBase(object):
             self._ctrl_thread.join()
 
     def __del__(self):
-        self.stop_control_thread()
+        self.stop_controller_thread()
 

@@ -34,8 +34,8 @@ class OSImpedanceController(OSControllerBase):
         F = np.vstack([self._P_pos.dot(delta_pos), self._P_ori.dot(delta_ori)]) - \
             np.vstack([self._D_pos.dot(curr_vel.reshape([3, 1])),
                        self._D_ori.dot(curr_omg.reshape([3, 1]))])
-                       
-        error = np.linalg.norm(delta_pos) + np.linalg.norm(delta_ori)
+
+        error = np.asarray([np.linalg.norm(delta_pos), np.linalg.norm(delta_ori)])
 
         J = self._robot.jacobian()
 

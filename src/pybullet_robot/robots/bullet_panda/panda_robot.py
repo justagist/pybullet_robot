@@ -204,5 +204,5 @@ class PandaArm(BulletRobot):
 
 if __name__ == '__main__':
 
-    p = PandaArm()
+    p = PandaArm(realtime_sim=True)
     # pass
