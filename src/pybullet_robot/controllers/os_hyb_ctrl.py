@@ -27,7 +27,7 @@ class OSHybridController(OSControllerBase):
         self._mutex.acquire()
         self._goal_pos = np.asarray(goal_pos).reshape([3, 1])
         self._goal_ori = np.asarray(goal_ori)
-        self._goal_ft = np.append(np.asarray(goal_force), np.asarray(goal_torque)).reshape([6, 1])
+        self._goal_ft = -np.append(np.asarray(goal_force), np.asarray(goal_torque)).reshape([6, 1])
         self._mutex.release()
 
     def _compute_cmd(self):
@@ -55,18 +55,18 @@ class OSHybridController(OSControllerBase):
         current_time = self._sim_time
         delta_time = max(0.,current_time - last_time)
 
-        curr_ft = -self._robot.get_ee_wrench().reshape([6,1])
+        curr_ft = self._robot.get_ee_wrench(local=False).reshape([6, 1])
 
         delta_ft = self._ft_dir.dot(self._goal_ft - curr_ft)
         self._I_term += delta_ft * delta_time
-        
+        # print np.diag(self._pos_dir), np.diag(self._ft_dir)
         self._I_term[self._I_term+self._windup_guard < 0.] = -self._windup_guard[self._I_term+self._windup_guard < 0.]
         self._I_term[self._I_term-self._windup_guard > 0.] = self._windup_guard[self._I_term-self._windup_guard > 0.]
 
         # Desired task-space force control PI law
-        F_force = self._P_ft.dot(delta_ft) + self._I_ft.dot(self._I_term)
-
-        F = F_motion + F_force
+        F_force = self._P_ft.dot(delta_ft) + self._I_ft.dot(self._I_term) + self._goal_ft
+        
+        F = F_motion - F_force # force control is subtracted because the computation is for the counter force
 
         error = np.asarray([(np.linalg.norm(self._pos_dir[:3, :3].dot(delta_pos))), np.linalg.norm(self._pos_dir[3:, 3:].dot(delta_ori)),
                         np.linalg.norm(delta_ft[3:]), np.linalg.norm(delta_ft[3:])])

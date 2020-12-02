@@ -69,7 +69,7 @@ class BulletRobot(object):
 
         self._joint_limits = self.get_joint_limits()
 
-        self._ft_joints = [self._movable_joints[-1]]
+        self._ft_joints = [self._all_joints[-1]]
 
         # by default, set FT sensor at last fixed joint
         self.set_ft_sensor_at(self._ft_joints[0])
@@ -192,8 +192,28 @@ class BulletRobot(object):
         """
 
         return self.get_link_velocity(link_id=self._ee_link_idx)
+    
+    def get_link_state(self, link_idx, as_tuple=False):
+        """
+        returns orientation in bullet format quaternion [x,y,z,w]
+        """
 
-    def get_ee_wrench(self, local=False):
+        link_state = pb.getLinkState(self._id, link_idx, computeLinkVelocity = 1, physicsClientId=self._uid)
+
+        if not as_tuple:
+            ee_pos = np.asarray(link_state[0])
+            ee_ori = np.asarray(link_state[1])
+            ee_vel = np.asarray(link_state[2])
+            ee_omg = np.asarray(link_state[3])
+        else:
+            ee_pos = link_state[0]
+            ee_ori = link_state[1]
+            ee_vel = link_state[2]
+            ee_omg = link_state[3]
+
+        return ee_pos, ee_ori, ee_vel, ee_omg
+
+    def get_ee_wrench(self, local=False, verbose=False):
         '''
         :param local: if True, computes reaction forces in local sensor frame, else in base frame of robot
         :type local: bool
@@ -202,23 +222,15 @@ class BulletRobot(object):
         '''
 
         _, _, jnt_reaction_force, _ = self.get_joint_state(self._ft_joints[-1])
-
-        if local:
-            ee_pos, ee_ori = self.ee_pose()
-
+        
+        if not local:
             jnt_reaction_force = np.asarray(jnt_reaction_force)
-            force = tuple(jnt_reaction_force[:3])
-            torque = tuple(jnt_reaction_force[3:])
-
-            inv_ee_pos, inv_ee_ori = pb.invertTransform(
-                ee_pos, [ee_ori.x, ee_ori.y, ee_ori.z, ee_ori.w])
-
-            force, _ = pb.multiplyTransforms(
-                inv_ee_pos, inv_ee_ori, force, (0, 0, 0, 1))
-            torque, _ = pb.multiplyTransforms(
-                inv_ee_pos, inv_ee_ori, torque, (0, 0, 0, 1))
-            jnt_reaction_force = force + torque
-
+            ee_pos, ee_ori = self.get_link_pose(self._ft_joints[-1])
+            rot_mat = quaternion.as_rotation_matrix(ee_ori)
+            f = np.dot(rot_mat,np.asarray([-jnt_reaction_force[0], -jnt_reaction_force[1], -jnt_reaction_force[2]]))
+            t = np.dot(rot_mat,np.asarray([-jnt_reaction_force[0+3], -jnt_reaction_force[1+3], -jnt_reaction_force[2+3]]))
+            jnt_reaction_force = np.append(f,t).flatten()
+            
         return jnt_reaction_force
 
     def inertia(self, joint_angles=None):
