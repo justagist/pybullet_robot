@@ -201,6 +201,15 @@ class PandaArm(BulletRobot):
         """
         return self._joint_names
 
+    @staticmethod
+    def load_robot_models():
+        """
+        Add the robot's URDF models to discoverable path for robot.
+        """
+        import os
+        BulletRobot.add_to_models_path(os.path.dirname(
+            os.path.abspath(__file__)) + "/models")
+
 
 if __name__ == '__main__':
 

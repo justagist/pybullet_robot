@@ -230,7 +230,7 @@ class BulletRobot(object):
             f = np.dot(rot_mat,np.asarray([-jnt_reaction_force[0], -jnt_reaction_force[1], -jnt_reaction_force[2]]))
             t = np.dot(rot_mat,np.asarray([-jnt_reaction_force[0+3], -jnt_reaction_force[1+3], -jnt_reaction_force[2+3]]))
             jnt_reaction_force = np.append(f,t).flatten()
-            
+
         return jnt_reaction_force
 
     def inertia(self, joint_angles=None):
@@ -653,3 +653,18 @@ class BulletRobot(object):
             triangle_mesh[i] = (np.asarray(global_pos),)
 
         return triangle_mesh
+
+    @staticmethod
+    def add_to_models_path(path):
+        """
+        Add the specified directory (absolute) to Pybullet's searchpath for easily adding models from the path.
+
+        :param path: the absolute path to the directory
+        :type path: str
+        """
+        import os
+        if os.path.isdir(path):
+            pb.setAdditionalSearchPath(path)
+            print ("Info: Added {} to Pybullet path.".format(path))
+        else:
+            print ("Error adding to Pybullet path! {} not a directory.".format(path))
