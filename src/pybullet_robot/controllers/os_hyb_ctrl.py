@@ -13,6 +13,8 @@ class OSHybridController(OSControllerBase):
         self._P_ft = np.diag(np.append(config['P_f'],config['P_tor']))
         self._I_ft = np.diag(np.append(config['I_f'],config['I_tor']))
 
+        self._null_Kp = np.diag(config['null_stiffness'])
+
         self._windup_guard = np.asarray(config['windup_guard']).reshape([6,1])
 
         self.change_ft_directions(np.asarray(config['ft_directions'], int))
@@ -21,6 +23,7 @@ class OSHybridController(OSControllerBase):
         self._mutex.acquire()
         self._ft_dir = np.diag(dims)
         self._pos_dir = np.diag([1, 1, 1, 1, 1, 1]) ^ self._ft_dir
+        self._I_term = np.zeros([6, 1])
         self._mutex.release()
 
     def update_goal(self, goal_pos, goal_ori, goal_force = np.zeros(3), goal_torque = np.zeros(3)):
@@ -75,8 +78,16 @@ class OSHybridController(OSControllerBase):
 
         self._last_time = current_time
 
+        cmd = np.dot(J.T, F)
+
+        null_space_filter = self._null_Kp.dot(
+            np.eye(7) - J.T.dot(np.linalg.pinv(J.T, rcond=1e-3)))
+
+        cmd += null_space_filter.dot((self._robot._tuck-self._robot.angles()).reshape([7,1]))
+        # print null_space_filter.dot(
+            # (self._robot._tuck-self._robot.angles()).reshape([7, 1]))
         # joint torques to be commanded
-        return np.dot(J.T, F).flatten(), error
+        return cmd, error
 
     def _initialise_goal(self):
         self._last_time = None
