@@ -35,7 +35,7 @@ class OSControllerBase(object):
         self._sim_time = 0.0
 
         if 'rate' not in config:
-            self._ctrl_rate = 1./self._sim_timestep
+            self._ctrl_rate = 1./self._sim_timestep - 50
         else:
             self._ctrl_rate = float(config['rate'])
 
@@ -76,6 +76,9 @@ class OSControllerBase(object):
                 # command robot using the computed joint torques
                 self._robot.exec_torque_cmd(tau)
 
+                # ## specifying f ctrl dir for custom state publishing
+                self._robot._ft_ctrl_dir = np.diag(self._ft_dir)
+                
                 self._robot.step_if_not_rtsim()
                 self._sim_time += self._sim_timestep
                 self._mutex.release()

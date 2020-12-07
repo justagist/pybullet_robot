@@ -1,10 +1,10 @@
 import pybullet as pb
 import numpy as np
 import quaternion
-
+from utils import FTSmoother
 
 class BulletRobot(object):
-    def __init__(self, description_path, uid=None, config=None, realtime_sim=False):
+    def __init__(self, description_path, uid=None, config=None, realtime_sim=False, ft_smoother_mode=FTSmoother.GLOBAL):
         """
         :param description_path: path to description file (urdf, .bullet, etc.)
         :param config: optional config file for specifying robot information 
@@ -53,6 +53,8 @@ class BulletRobot(object):
         self._nu = len(self._movable_joints)
         self._nq = self._nu
 
+        self._ft_smoother = FTSmoother(self.get_ee_wrench, ft_smoother_mode)
+
         joint_information = self.get_joint_info()
 
         self._all_joint_names = [info['jointName'].decode(
@@ -74,6 +76,8 @@ class BulletRobot(object):
         # by default, set FT sensor at last fixed joint
         self.set_ft_sensor_at(self._ft_joints[0])
 
+        self.step_if_not_rtsim()
+        
     def step_sim(self):
         pb.stepSimulation(self._uid)
 
@@ -118,14 +122,10 @@ class BulletRobot(object):
                        }
         """
 
-        joint_angles = self.angles()
-        joint_velocities = self.joint_velocities()
-        joint_efforts = self.joint_efforts()
-
         state = {}
-        state['position'] = joint_angles
-        state['velocity'] = joint_velocities
-        state['effort'] = joint_efforts
+        state['position'] = self.angles()
+        state['velocity'] = self.joint_velocities()
+        state['effort'] = self.joint_efforts()
         state['jacobian'] = self.jacobian(None)
         state['inertia'] = self.inertia(None)
 
@@ -133,15 +133,19 @@ class BulletRobot(object):
 
         state['ee_vel'], state['ee_omg'] = self.ee_velocity()
 
-        tip_state = {}
-        ft_joint_state = pb.getJointState(self._id, max(
-            self._ft_joints), physicsClientId=self._uid)
-        ft = np.asarray(ft_joint_state[2])
+        # tip_state = {}
+        # ft_joint_state = pb.getJointState(self._id, max(
+        #     self._ft_joints), physicsClientId=self._uid)
+        # ft = np.asarray(ft_joint_state[2])
 
-        tip_state['force'] = ft[:3]
-        tip_state['torque'] = ft[3:]
+        # tip_state['force'] = ft[:3]
+        # tip_state['torque'] = ft[3:]
 
-        state['tip_state'] = tip_state
+        # state['tip_state'] = tip_state
+
+        state['ft_raw'] = self.get_ee_wrench()
+        self._ft_smoother.update(state['ft_raw'])
+        state['ft_smoothed'] = self._ft_smoother.get_values()
 
         return state
 
@@ -232,6 +236,12 @@ class BulletRobot(object):
             jnt_reaction_force = np.append(f,t).flatten()
 
         return jnt_reaction_force
+    
+    def get_ee_wrench_smoothed(self):
+        """
+        Should have defined FTSmoother in init. Also, should have used step_sim() method for simulation updates.
+        """
+        return self._ft_smoother.get_values()
 
     def inertia(self, joint_angles=None):
         """
@@ -668,3 +678,6 @@ class BulletRobot(object):
             print ("Info: Added {} to Pybullet path.".format(path))
         else:
             print ("Error adding to Pybullet path! {} not a directory.".format(path))
+
+        
+
