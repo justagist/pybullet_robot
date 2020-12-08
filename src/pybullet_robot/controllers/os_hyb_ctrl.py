@@ -24,6 +24,7 @@ class OSHybridController(OSControllerBase):
         self._ft_dir = np.diag(dims)
         self._pos_dir = np.diag([1, 1, 1, 1, 1, 1]) ^ self._ft_dir
         self._I_term = np.zeros([6, 1])
+        self._ff_term = np.zeros([6,1])
         self._mutex.release()
 
     def update_goal(self, goal_pos, goal_ori, goal_force = np.zeros(3), goal_torque = np.zeros(3)):
@@ -70,7 +71,7 @@ class OSHybridController(OSControllerBase):
         # Desired task-space force control PI law
         F_force = self._P_ft.dot(delta_ft) + self._I_ft.dot(self._I_term) + self._goal_ft
         
-        F = F_motion - F_force # force control is subtracted because the computation is for the counter force
+        F = F_motion - F_force + self._ff_term # force control is subtracted because the computation is for the counter force
 
         error = np.asarray([(np.linalg.norm(self._pos_dir[:3, :3].dot(delta_pos))), np.linalg.norm(self._pos_dir[3:, 3:].dot(delta_ori)),
                         np.linalg.norm(delta_ft[3:]), np.linalg.norm(delta_ft[3:])])
@@ -92,6 +93,7 @@ class OSHybridController(OSControllerBase):
     def _initialise_goal(self):
         self._last_time = None
         self._robot.step_if_not_rtsim()
-        self._I_term = np.zeros([6,1])
+        self._I_term = np.zeros([6, 1])
+        self._ff_term = np.zeros([6, 1])
         self.update_goal(self._robot.get_state()['ee_point'], self._robot.get_state()[
                          'ee_ori'], np.zeros(3), np.zeros(3))
