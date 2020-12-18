@@ -28,13 +28,15 @@ class SimpleWorld(object):
 
         self.reset_world()
 
-    def reset_world(self, timeout=2):
+    def reset_world(self, timeout=1):
         if self._robot._rt_sim:
             self._robot.untuck()
             return
 
         timeout = time.time() + timeout
         while time.time() < timeout:
+            if np.allclose(self._robot.angles(), np.asarray(self._robot._tuck), 1.e-3):
+                break
             self._robot.untuck()
             pb.stepSimulation()
 
