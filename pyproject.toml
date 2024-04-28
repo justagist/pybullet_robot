@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "pybullet-robot"
+version = "0.0.1"
+description = ""
+authors = ["JustaGist <mail@saifsidhik.page>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+pybullet = ">3.1"
+robot-descriptions = ">=1.10.0"
+numpy = "*"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+sphinxcontrib-napoleon = "*"
+sphinx-rtd-theme = "*"
+sphinx-autoapi = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
