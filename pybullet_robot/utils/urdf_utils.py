@@ -1,3 +1,5 @@
+"""Utils related to urdf files."""
+
 from typing import List
 import logging
 import importlib
@@ -16,13 +18,15 @@ def get_robot_description_urdf(
     The specified package should be from the list of awesome robot descriptions
     (https://github.com/robot-descriptions/robot_descriptions.py/tree/main?tab=readme-ov-file#descriptions).
 
-    The list of available robot descriptions can also be viewed in the variable `AWESOME_ROBOTS` imported
-    from `utils.urdf_utils`.
+    The list of available robot descriptions can also be viewed in the variable `AWESOME_ROBOTS`
+    imported from `utils.urdf_utils`.
 
-    Downloads description package for the specified robot and caches it locally (only needs downloading once).
+    Downloads description package for the specified robot and caches it locally (only needs
+    downloadin once).
 
     Args:
-        robot_description_pkg_name (str): The package name as specified in the Awesome Robot Descriptions list.
+        robot_description_pkg_name (str): The package name as specified in the Awesome Robot
+            Descriptions list.
 
     Returns:
         str: Path to the robot's urdf file.
