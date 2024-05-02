@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Tuple, TypeAlias, Mapping, Final
 from dataclasses import dataclass
 from numbers import Number
 import pybullet as pb
+import pybullet_data
 import numpy as np
 
 # pylint: disable=I1101, R0914, C0302, R0902, R0904, R0913, C0103, C0116
@@ -57,7 +58,7 @@ class BulletJointInfo:
 
 @dataclass
 class BulletRobotJointsInfo:
-    """Consolidated static information about all joints for this robot."""
+    """Consolidated static information about all joints for a robot."""
 
     joint_name_to_info: Mapping[str, BulletJointInfo]
     """Mapping from joint name to BulletJointInfo for each joint of this robot."""
@@ -74,103 +75,88 @@ class BulletRobotJointsInfo:
     continuous_joint_ids: Final[List[str]]
     """Pybullet joint ids of continuous joints only."""
 
+    def __init__(self, object_id: int, cid: int = 0):
+        """Joint information from pybullet's getJointInfo for all joints.
 
-def get_pybullet_object_joint_info(
-    object_id: int, cid: int = 0, verbose: bool = False
-) -> BulletRobotJointsInfo:
-    """Get joint information from pybullet's getJointInfo for all joints.
+        Args:
+            object_id (int): Pybullet object ID
+            cid (int, optional): Pybullet physics client ID. Defaults to 0.
+        """
 
-    Args:
-        object_id (int): Pybullet object ID
-        cid (int, optional): Pybullet physics client ID. Defaults to 0.
-        verbose (bool, optional): Verbosity flag. Defaults to False.
+        def _decode_if_required(val):
+            if isinstance(val, bytes):
+                val = val.decode()
+            return val
 
-    Returns:
-        BulletRobotJointsInfo: Static information about joints of this robot.
-    """
+        joint_name_to_info: Mapping[str, BulletJointInfo] = {}
+        num_joints = pb.getNumJoints(object_id, physicsClientId=cid)
+        actuated_joint_names = []
+        actuated_joint_ids = []
+        actuated_joint_lower_limits = []
+        actuated_joint_upper_limits = []
+        continuous_joint_names = []
+        continuous_joint_ids = []
+        for i in range(num_joints):
+            joint_info_tuple = pb.getJointInfo(object_id, i, physicsClientId=cid)
+            joint_id = _decode_if_required(joint_info_tuple[0])
+            joint_name = _decode_if_required(joint_info_tuple[1])
+            joint_type = _decode_if_required(joint_info_tuple[2])
+            q_index = _decode_if_required(joint_info_tuple[3])
+            u_index = _decode_if_required(joint_info_tuple[4])
+            joint_damping = _decode_if_required(joint_info_tuple[6])
+            joint_friction = _decode_if_required(joint_info_tuple[7])
+            joint_lower_limit = _decode_if_required(joint_info_tuple[8])
+            joint_upper_limit = _decode_if_required(joint_info_tuple[9])
+            joint_max_force = _decode_if_required(joint_info_tuple[10])
+            joint_max_velocity = _decode_if_required(joint_info_tuple[11])
+            link_name = _decode_if_required(joint_info_tuple[12])
+            joint_axis = _decode_if_required(joint_info_tuple[13])
+            parent_frame_pos = _decode_if_required(joint_info_tuple[14])
+            parent_frame_ori = _decode_if_required(joint_info_tuple[15])
+            parent_index = _decode_if_required(joint_info_tuple[16])
 
-    def _decode_if_required(val):
-        if isinstance(val, bytes):
-            val = val.decode()
-        return val
+            joint_name_to_info[joint_name] = BulletJointInfo(
+                joint_id=joint_id,
+                joint_name=joint_name,
+                joint_type=joint_type,
+                q_index=q_index,
+                u_index=u_index,
+                joint_damping=joint_damping,
+                joint_friction=joint_friction,
+                joint_lower_limit=joint_lower_limit,
+                joint_upper_limit=joint_upper_limit,
+                joint_max_force=joint_max_force,
+                joint_max_velocity=joint_max_velocity,
+                link_name=link_name,
+                joint_axis=joint_axis,
+                parent_frame_pos=parent_frame_pos,
+                parent_frame_ori=parent_frame_ori,
+                parent_index=parent_index,
+            )
+            if joint_type == pb.JOINT_FIXED:
+                continue
 
-    joint_name_to_info: Mapping[str, BulletJointInfo] = {}
-    num_joints = pb.getNumJoints(object_id, physicsClientId=cid)
-    actuated_joint_names = []
-    actuated_joint_ids = []
-    actuated_joint_lower_limits = []
-    actuated_joint_upper_limits = []
-    continuous_joint_names = []
-    continuous_joint_ids = []
-    for i in range(num_joints):
-        joint_info_tuple = pb.getJointInfo(object_id, i, physicsClientId=cid)
-        joint_id = _decode_if_required(joint_info_tuple[0])
-        joint_name = _decode_if_required(joint_info_tuple[1])
-        joint_type = _decode_if_required(joint_info_tuple[2])
-        q_index = _decode_if_required(joint_info_tuple[3])
-        u_index = _decode_if_required(joint_info_tuple[4])
-        joint_damping = _decode_if_required(joint_info_tuple[6])
-        joint_friction = _decode_if_required(joint_info_tuple[7])
-        joint_lower_limit = _decode_if_required(joint_info_tuple[8])
-        joint_upper_limit = _decode_if_required(joint_info_tuple[9])
-        joint_max_force = _decode_if_required(joint_info_tuple[10])
-        joint_max_velocity = _decode_if_required(joint_info_tuple[11])
-        link_name = _decode_if_required(joint_info_tuple[12])
-        joint_axis = _decode_if_required(joint_info_tuple[13])
-        parent_frame_pos = _decode_if_required(joint_info_tuple[14])
-        parent_frame_ori = _decode_if_required(joint_info_tuple[15])
-        parent_index = _decode_if_required(joint_info_tuple[16])
+            actuated_joint_ids.append(joint_id)
+            actuated_joint_names.append(joint_name)
+            actuated_joint_lower_limits.append(joint_lower_limit)
+            actuated_joint_upper_limits.append(joint_upper_limit)
 
-        joint_name_to_info[joint_name] = BulletJointInfo(
-            joint_id=joint_id,
-            joint_name=joint_name,
-            joint_type=joint_type,
-            q_index=q_index,
-            u_index=u_index,
-            joint_damping=joint_damping,
-            joint_friction=joint_friction,
-            joint_lower_limit=joint_lower_limit,
-            joint_upper_limit=joint_upper_limit,
-            joint_max_force=joint_max_force,
-            joint_max_velocity=joint_max_velocity,
-            link_name=link_name,
-            joint_axis=joint_axis,
-            parent_frame_pos=parent_frame_pos,
-            parent_frame_ori=parent_frame_ori,
-            parent_index=parent_index,
-        )
-        if joint_type == pb.JOINT_FIXED:
-            continue
+            if (
+                joint_type == pb.JOINT_REVOLUTE
+                and joint_upper_limit == 0
+                and joint_lower_limit == 0
+            ):
+                continuous_joint_names.append(joint_name)
+                continuous_joint_ids.append(joint_id)
 
-        actuated_joint_ids.append(joint_id)
-        actuated_joint_names.append(joint_name)
-        actuated_joint_lower_limits.append(joint_lower_limit)
-        actuated_joint_upper_limits.append(joint_upper_limit)
-
-        if (
-            joint_type == pb.JOINT_REVOLUTE
-            and joint_upper_limit == 0
-            and joint_lower_limit == 0
-        ):
-            continuous_joint_names.append(joint_name)
-            continuous_joint_ids.append(joint_id)
-
-    joints_info = BulletRobotJointsInfo(
-        joint_name_to_info=joint_name_to_info,
-        num_actuated_joints=len(actuated_joint_names),
-        actuated_joint_names=actuated_joint_names,
-        actuated_joint_ids=actuated_joint_ids,
-        actuated_joint_lower_limits=actuated_joint_lower_limits,
-        actuated_joint_upper_limits=actuated_joint_upper_limits,
-        continuous_joint_ids=continuous_joint_ids,
-        continuous_joint_names=continuous_joint_names,
-    )
-
-    if verbose:
-        print("joint_info:")
-        print(joints_info)
-
-    return joints_info
+        self.joint_name_to_info = joint_name_to_info.copy()
+        self.num_actuated_joints = len(actuated_joint_names)
+        self.actuated_joint_names = actuated_joint_names.copy()
+        self.actuated_joint_ids = actuated_joint_ids.copy()
+        self.actuated_joint_lower_limits = actuated_joint_lower_limits.copy()
+        self.actuated_joint_upper_limits = actuated_joint_upper_limits.copy()
+        self.continuous_joint_ids = continuous_joint_ids.copy()
+        self.continuous_joint_names = continuous_joint_names.copy()
 
 
 @dataclass
@@ -191,68 +177,53 @@ class BulletLinkInfo:
     collision_margin: Final[float]
 
 
-@dataclass
 class BulletRobotLinksInfo:
-    """Consolidated information about all links of the robot."""
+    """Consolidated information about all links of a robot."""
 
     link_name_to_info: Mapping[str, BulletLinkInfo]
     link_names: Final[List[str]]
     link_ids: Final[List[int]]
 
+    def __init__(self, object_id: int, cid: int = 0):
+        """Link information from links of a pybullet object.
 
-def get_pybullet_object_link_info(
-    object_id: int, cid: int = 0, verbose: bool = False
-) -> BulletRobotLinksInfo:
-    """Get link information from links of a pybullet object.
+        Args:
+            object_id (int): Pybullet object ID
+            cid (int, optional): Pybullet physics client ID. Defaults to 0.
+        """
 
-    Args:
-        object_id (int): Pybullet object ID
-        cid (int, optional): Pybullet physics client ID. Defaults to 0.
-        verbose (bool, optional): Verbosity flag. Defaults to False.
+        num_joints = pb.getNumJoints(object_id, physicsClientId=cid)
+        base_name = pb.getBodyInfo(object_id, physicsClientId=cid)[0].decode()
 
-    Returns:
-        BulletRobotLinksInfo: Static information about links of this robot.
+        link_ids = [-1] + list(range(num_joints))
+        link_names = [base_name]
+        for i in range(num_joints):
+            joint_info_tuple = pb.getJointInfo(object_id, i, physicsClientId=cid)
+            link_names.append(joint_info_tuple[12].decode())
 
-    """
+        link_name_to_info: Mapping[str, BulletLinkInfo] = {}
+        for link_id, link_name in zip(link_ids, link_names):
+            link_info_tuple = pb.getDynamicsInfo(
+                object_id, link_id, physicsClientId=cid
+            )
+            link_name_to_info[link_name] = BulletLinkInfo(
+                mass=link_info_tuple[0],
+                lateral_friction=link_info_tuple[1],
+                local_inertia_diagonal=[2],
+                local_inertial_pos=link_info_tuple[3],
+                local_inertial_ori=link_info_tuple[4],
+                restitution=link_info_tuple[5],
+                rolling_friction=link_info_tuple[6],
+                spinning_friction=link_info_tuple[7],
+                contact_damping=link_info_tuple[8],
+                contact_stiffness=link_info_tuple[9],
+                body_type=link_info_tuple[10],
+                collision_margin=link_info_tuple[11],
+            )
 
-    num_joints = pb.getNumJoints(object_id, physicsClientId=cid)
-    base_name = pb.getBodyInfo(object_id, physicsClientId=cid)[0].decode()
-
-    link_ids = [-1] + list(range(num_joints))
-    link_names = [base_name]
-    for i in range(num_joints):
-        joint_info_tuple = pb.getJointInfo(object_id, i, physicsClientId=cid)
-        link_names.append(joint_info_tuple[12].decode())
-
-    link_name_to_info: Mapping[str, BulletLinkInfo] = {}
-    for link_id, link_name in zip(link_ids, link_names):
-        link_info_tuple = pb.getDynamicsInfo(object_id, link_id, physicsClientId=cid)
-        link_name_to_info[link_name] = BulletLinkInfo(
-            mass=link_info_tuple[0],
-            lateral_friction=link_info_tuple[1],
-            local_inertia_diagonal=[2],
-            local_inertial_pos=link_info_tuple[3],
-            local_inertial_ori=link_info_tuple[4],
-            restitution=link_info_tuple[5],
-            rolling_friction=link_info_tuple[6],
-            spinning_friction=link_info_tuple[7],
-            contact_damping=link_info_tuple[8],
-            contact_stiffness=link_info_tuple[9],
-            body_type=link_info_tuple[10],
-            collision_margin=link_info_tuple[11],
-        )
-
-    link_info = BulletRobotLinksInfo(
-        link_name_to_info=link_name_to_info,
-        link_names=link_names,
-        link_ids=link_ids,
-    )
-
-    if verbose:
-        print("link_info:")
-        print(link_info)
-
-    return link_info
+        self.link_name_to_info = link_name_to_info.copy()
+        self.link_names = link_names.copy()
+        self.link_ids = link_ids.copy()
 
 
 def fix_pb_link_mass_inertia(
@@ -287,13 +258,9 @@ def fix_pb_link_mass_inertia(
             )
 
 
-class BulletObject:
-    """Static information about this robot (including joint info and link info)."""
+class BulletObject(BulletRobotJointsInfo, BulletRobotLinksInfo):
+    """Static information about a pybullet object (including joint info and link info)."""
 
-    joints_info: BulletRobotJointsInfo
-    """Consolidated static information about all joints of this robot."""
-    links_info: BulletRobotLinksInfo
-    """Consolidated static information about all links of this robot."""
     object_id: int
     name: str
     mass: float
@@ -301,29 +268,21 @@ class BulletObject:
     base_name: str
 
     def __init__(self, object_id: int, cid: int = 0):
-        self._reset_object_info(object_id=object_id, cid=cid)
-
-    def _reset_object_info(self, object_id: int, cid: int = 0):
         """Get information about a pybullet object.
 
         Args:
             object_id (int): Pybullet object ID
             cid (int, optional): Pybullet physics client ID. Defaults to 0.
             verbose (bool, optional): Verbosity flag. Defaults to False.
-
-        Returns:
-            BulletObject: Static (non-changing) information about this object.
-
         """
         self.name = pb.getBodyInfo(object_id, physicsClientId=cid)[1].decode()
         self.base_name = pb.getBodyInfo(object_id, physicsClientId=cid)[0].decode()
-        self.joints_info = get_pybullet_object_joint_info(object_id, cid=cid)
-        self.links_info = get_pybullet_object_link_info(object_id, cid=cid)
-        self.mass = np.sum(
-            self.links_info.link_name_to_info[name].mass
-            for name in self.links_info.link_names
-        )
         self.object_id = object_id
+        BulletRobotJointsInfo.__init__(self, object_id=object_id, cid=cid)
+        BulletRobotLinksInfo.__init__(self, object_id=object_id, cid=cid)
+        self.mass = np.sum(
+            self.link_name_to_info[name].mass for name in self.link_names
+        )
 
 
 class BulletRobot(BulletObject):
@@ -387,8 +346,6 @@ class BulletRobot(BulletObject):
             self.cid = pb.connect(pb.GUI_SERVER)
 
         if load_ground_plane:
-            import pybullet_data
-
             pb.setAdditionalSearchPath(pybullet_data.getDataPath())
             pb.loadURDF("plane.urdf", physicsClientId=self.cid)
 
@@ -414,31 +371,24 @@ class BulletRobot(BulletObject):
 
         fix_pb_link_mass_inertia(body_id=self.robot_id, cid=self.cid)
 
-        # retrieve all the info about the robot and populate attributes
-        self.refresh_sim_data()
+        self.has_continuous_joints = len(self.continuous_joint_ids) > 0
 
-        self.has_continuous_joints = len(self.joints_info.continuous_joint_ids) > 0
-
-        self.link_name_to_index = dict(
-            zip(self.links_info.link_names, self.links_info.link_ids)
-        )
+        self.link_name_to_index = dict(zip(self.link_names, self.link_ids))
         """Mapping from link name to pybullet link id."""
         self.joint_name_to_index = dict(
             zip(
-                self.joints_info.actuated_joint_names,
-                self.joints_info.actuated_joint_ids,
+                self.actuated_joint_names,
+                self.actuated_joint_ids,
             )
         )
         """Mapping from joint name to pybullet joint id."""
 
-        self.link_id_to_name = dict(
-            zip(self.links_info.link_ids, self.links_info.link_names)
-        )
+        self.link_id_to_name = dict(zip(self.link_ids, self.link_names))
         """Mapping from pybullet link id to link name."""
         self.joint_id_to_name = dict(
             zip(
-                self.joints_info.actuated_joint_ids,
-                self.joints_info.actuated_joint_names,
+                self.actuated_joint_ids,
+                self.actuated_joint_names,
             )
         )
         """Mapping from pybullet joint id to joint name."""
@@ -452,10 +402,10 @@ class BulletRobot(BulletObject):
         self.default_joint_positions = np.array(
             default_joint_positions
             if default_joint_positions is not None
-            else np.zeros_like(self.joints_info.actuated_joint_ids)
+            else np.zeros_like(self.actuated_joint_ids)
         )
         self.reset_joints(
-            joint_ids=self.joints_info.actuated_joint_ids,
+            joint_ids=self.actuated_joint_ids,
             joint_positions=self.default_joint_positions,
         )
 
@@ -470,8 +420,8 @@ class BulletRobot(BulletObject):
 
         self._prev_torque_cmds = dict(
             zip(
-                self.joints_info.actuated_joint_ids,
-                np.zeros(self.joints_info.num_actuated_joints),
+                self.actuated_joint_ids,
+                np.zeros(self.num_actuated_joints),
             )
         )
 
@@ -479,7 +429,7 @@ class BulletRobot(BulletObject):
 
         self._ghost_mode = ghost_mode
         if self._ghost_mode:
-            for link_id in self.links_info.link_ids:
+            for link_id in self.link_ids:
                 self.set_robot_transparency(0.3)
                 pb.setCollisionFilterGroupMask(
                     self.robot_id, link_id, 0, 0, physicsClientId=self.cid
@@ -506,10 +456,7 @@ class BulletRobot(BulletObject):
         Needed if dynamics of any link was changed manually. This method is
         called automatically when `change_dynamics()` of this class is called.
         """
-        super()._reset_object_info(
-            object_id=self.robot_id,
-            cid=self.cid,
-        )
+        super().__init__(object_id=self.robot_id, cid=self.cid)
 
     def _print_robot_info(self):
         print("\n")
@@ -520,81 +467,78 @@ class BulletRobot(BulletObject):
         print("base link name:        ", self.base_name)
         print(
             "link names:            ",
-            len(self.links_info.link_names),
-            self.links_info.link_names,
+            len(self.link_names),
+            self.link_names,
         )
         print(
             "link indexes:          ",
-            len(self.links_info.link_ids),
-            self.links_info.link_ids,
+            len(self.link_ids),
+            self.link_ids,
         )
         print(
             "link masses:           ",
-            len(self.links_info.link_ids),
-            [
-                self.links_info.link_name_to_info[name].mass
-                for name in self.links_info.link_names
-            ],
+            len(self.link_ids),
+            [self.link_name_to_info[name].mass for name in self.link_names],
         )
         print("end-effectors          ", self.ee_names)
         print(
             "All joints:            ",
-            len(self.joints_info.joint_name_to_info.keys()),
-            len(self.joints_info.joint_name_to_info.keys()),
+            len(self.joint_name_to_info.keys()),
+            len(self.joint_name_to_info.keys()),
         )
         print(
             "Actuated joints:       ",
-            self.joints_info.num_actuated_joints,
-            self.joints_info.actuated_joint_names,
+            self.num_actuated_joints,
+            self.actuated_joint_names,
         )
         print(
             "joint dampings:        ",
-            len(self.joints_info.actuated_joint_ids),
+            len(self.actuated_joint_ids),
             [
-                self.joints_info.joint_name_to_info[name].joint_damping
-                for name in self.joints_info.actuated_joint_names
+                self.joint_name_to_info[name].joint_damping
+                for name in self.actuated_joint_names
             ],
         )
         print(
             "joint frictions:       ",
-            len(self.joints_info.actuated_joint_ids),
+            len(self.actuated_joint_ids),
             [
-                self.joints_info.joint_name_to_info[name].joint_friction
-                for name in self.joints_info.actuated_joint_names
+                self.joint_name_to_info[name].joint_friction
+                for name in self.actuated_joint_names
             ],
         )
         print(
             "joint lower limits:    ",
-            len(self.joints_info.actuated_joint_lower_limits),
-            self.joints_info.actuated_joint_lower_limits,
+            len(self.actuated_joint_lower_limits),
+            self.actuated_joint_lower_limits,
         )
         print(
             "joint higher limits:   ",
-            len(self.joints_info.actuated_joint_upper_limits),
-            self.joints_info.actuated_joint_upper_limits,
+            len(self.actuated_joint_upper_limits),
+            self.actuated_joint_upper_limits,
         )
         print(
             "joint ids:             ",
-            len(self.joints_info.joint_name_to_info.keys()),
+            len(self.joint_name_to_info.keys()),
             [
-                self.joints_info.joint_name_to_info[name].joint_id
-                for name in self.joints_info.joint_name_to_info.keys()
+                self.joint_name_to_info[name].joint_id
+                for name in self.joint_name_to_info.keys()
             ],
         )
         print(
             "actuated joint ids:    ",
-            len(self.joints_info.actuated_joint_ids),
-            self.joints_info.actuated_joint_ids,
+            len(self.actuated_joint_ids),
+            self.actuated_joint_ids,
         )
         print(
             "continuous joint names:",
-            len(self.joints_info.continuous_joint_names),
-            self.joints_info.continuous_joint_names,
+            len(self.continuous_joint_names),
+            self.continuous_joint_names,
         )
         print(
             "continuous joint ids:  ",
-            len(self.joints_info.continuous_joint_ids),
-            self.joints_info.continuous_joint_ids,
+            len(self.continuous_joint_ids),
+            self.continuous_joint_ids,
         )
         print("*" * 100 + "\nSimRobot Info " + "\u2191 " * 20 + "\n" + "*" * 100)
         print("\n")
@@ -658,29 +602,25 @@ class BulletRobot(BulletObject):
         if default_orientation is None:
             default_orientation = self.default_start_pose[1]
 
-        joint_pos = self.get_joint_states(
-            joint_ids=self.joints_info.actuated_joint_ids
-        )[0].copy()
+        joint_pos = self.get_joint_states(joint_ids=self.actuated_joint_ids)[0].copy()
         while in_collision:
             default_position[2] += move_resolution
             self.reset_base_pose(
                 position=default_position, orientation=default_orientation
             )
             self.reset_joints(
-                joint_ids=self.joints_info.actuated_joint_ids,
+                joint_ids=self.actuated_joint_ids,
                 joint_positions=joint_pos,
             )
             pb.stepSimulation(physicsClientId=self.cid)
-            in_collision = np.any(
-                self.get_contact_states_of_links(self.links_info.link_ids)
-            )
+            in_collision = np.any(self.get_contact_states_of_links(self.link_ids))
         self.default_start_pose[0] = np.array(default_position)
 
     def set_position_control_mode(self):
         """Set control mode to position-based (robot will stay in place if no commands sent)."""
         pb.setJointMotorControlArray(
             self.robot_id,
-            self.joints_info.actuated_joint_ids,
+            self.actuated_joint_ids,
             pb.POSITION_CONTROL,
             targetPositions=self.get_actuated_joint_positions(),
             physicsClientId=self.cid,
@@ -692,9 +632,9 @@ class BulletRobot(BulletObject):
         """Set control mode to effort-based (robot will NOT stay in place if no commands sent)."""
         pb.setJointMotorControlArray(
             self.robot_id,
-            self.joints_info.actuated_joint_ids,
+            self.actuated_joint_ids,
             pb.VELOCITY_CONTROL,
-            forces=[0.0] * self.joints_info.num_actuated_joints,
+            forces=[0.0] * self.num_actuated_joints,
             physicsClientId=self.cid,
         )
         self._in_torque_mode = True
@@ -768,7 +708,7 @@ class BulletRobot(BulletObject):
         if joint_positions is None:
             joint_positions = self.default_joint_positions
         if joint_names is None:
-            joint_names = self.joints_info.actuated_joint_names
+            joint_names = self.actuated_joint_names
         joint_ids = self.get_joint_ids(joint_names=joint_names)
         self.reset_joints(
             joint_ids=joint_ids,
@@ -835,12 +775,8 @@ class BulletRobot(BulletObject):
         world_trans_com = self.get_base_pose()
 
         com_trans_local = pb.invertTransform(
-            position=self.links_info.link_name_to_info[
-                self.base_name
-            ].local_inertial_pos,
-            orientation=self.links_info.link_name_to_info[
-                self.base_name
-            ].local_inertial_ori,
+            position=self.link_name_to_info[self.base_name].local_inertial_pos,
+            orientation=self.link_name_to_info[self.base_name].local_inertial_ori,
             physicsClientId=self.cid,
         )
         world_trans_local = pb.multiplyTransforms(
@@ -870,7 +806,7 @@ class BulletRobot(BulletObject):
         and other exposed properties related to joints and links for this robot)
         after making the change.
 
-        Will update `self.links_info` attributes automatically.
+        Will update `self` attributes automatically.
 
         NOTE: Not to be used in high-speed loops as this operation can be heavy.
         """
@@ -889,7 +825,7 @@ class BulletRobot(BulletObject):
         self, actuated_joint_names: List[str] = None
     ) -> np.ndarray:
         if actuated_joint_names is None:
-            actuated_joint_names = self.joints_info.actuated_joint_names
+            actuated_joint_names = self.actuated_joint_names
         return self.get_joint_states(
             joint_ids=self.get_joint_ids(actuated_joint_names)
         )[0]
@@ -898,7 +834,7 @@ class BulletRobot(BulletObject):
         self, actuated_joint_names: List[str] = None
     ) -> np.ndarray:
         if actuated_joint_names is None:
-            actuated_joint_names = self.joints_info.actuated_joint_names
+            actuated_joint_names = self.actuated_joint_names
         return self.get_joint_states(
             joint_ids=self.get_joint_ids(actuated_joint_names)
         )[1]
@@ -907,7 +843,7 @@ class BulletRobot(BulletObject):
         self, actuated_joint_names: List[str] = None
     ) -> np.ndarray:
         if actuated_joint_names is None:
-            actuated_joint_names = self.joints_info.actuated_joint_names
+            actuated_joint_names = self.actuated_joint_names
         return self.get_joint_states(
             joint_ids=self.get_joint_ids(actuated_joint_names)
         )[2]
@@ -987,9 +923,9 @@ class BulletRobot(BulletObject):
         Args:
             enable (bool): True or false.
         """
-        for n, l_id in enumerate(self.links_info.link_ids):
-            if n < len(self.links_info.link_ids) - 1:
-                for l2_id in self.links_info.link_ids[n:]:
+        for n, l_id in enumerate(self.link_ids):
+            if n < len(self.link_ids) - 1:
+                for l2_id in self.link_ids[n:]:
                     pb.setCollisionFilterPair(
                         self.robot_id,
                         self.robot_id,
@@ -1028,8 +964,8 @@ class BulletRobot(BulletObject):
 
         """
         if actuated_joint_names is None:
-            actuated_joint_names = self.joints_info.actuated_joint_names
-            joint_ids = self.joints_info.actuated_joint_ids
+            actuated_joint_names = self.actuated_joint_names
+            joint_ids = self.actuated_joint_ids
         else:
             joint_ids = self.get_joint_ids(joint_names=actuated_joint_names)
         if ee_names is None:
@@ -1068,14 +1004,14 @@ class BulletRobot(BulletObject):
                 joint force-torque values (if FT sensor enabled for the joint), joint efforts.
         """
         if joint_ids is None:
-            joint_ids = self.joints_info.actuated_joint_ids
+            joint_ids = self.actuated_joint_ids
         dof = len(joint_ids)
         q, v, ft, tau = np.zeros(dof), np.zeros(dof), np.zeros([dof, 6]), np.zeros(dof)
         for n, idx in enumerate(joint_ids):
             q[n], v[n], ft[n, :], tau[n] = pb.getJointState(
                 self.robot_id, idx, physicsClientId=self.cid
             )
-            if idx in self.joints_info.continuous_joint_ids:
+            if idx in self.continuous_joint_ids:
                 q[n] = wrap_angle(q[n])
             if self._in_torque_mode:
                 tau[n] = self._prev_torque_cmds[idx]
@@ -1113,7 +1049,7 @@ class BulletRobot(BulletObject):
     ):
         # NOTE: Not tested
         if actuated_joint_names is None:
-            actuated_joint_names = self.joints_info.actuated_joint_names
+            actuated_joint_names = self.actuated_joint_names
         jids = self.get_joint_ids(actuated_joint_names)
 
         pb.setJointMotorControlArray(
@@ -1128,7 +1064,7 @@ class BulletRobot(BulletObject):
         self, cmd: np.ndarray, actuated_joint_names: List[str] = None
     ):
         if actuated_joint_names is None:
-            actuated_joint_names = self.joints_info.actuated_joint_names
+            actuated_joint_names = self.actuated_joint_names
         jids = self.get_joint_ids(actuated_joint_names)
 
         pb.setJointMotorControlArray(
@@ -1143,7 +1079,7 @@ class BulletRobot(BulletObject):
         self, cmd: np.ndarray, actuated_joint_names: List[str] = None
     ):
         if actuated_joint_names is None:
-            actuated_joint_names = self.joints_info.actuated_joint_names
+            actuated_joint_names = self.actuated_joint_names
         jids = self.get_joint_ids(actuated_joint_names)
 
         pb.setJointMotorControlArray(
@@ -1161,7 +1097,7 @@ class BulletRobot(BulletObject):
         vels: np.ndarray = None,
     ):
         if actuated_joint_names is None:
-            actuated_joint_names = self.joints_info.actuated_joint_names
+            actuated_joint_names = self.actuated_joint_names
         jids = self.get_joint_ids(actuated_joint_names)
 
         pb.setJointMotorControlArray(
@@ -1188,7 +1124,7 @@ class BulletRobot(BulletObject):
             p_term = Kp * (q_des - curr_q)
             if self.has_continuous_joints:
                 for n, jid in enumerate(joint_ids):
-                    if jid in self.joints_info.continuous_joint_ids:
+                    if jid in self.continuous_joint_ids:
                         p_term[n] = Kp[n] * wrap_angle(q_des[n] - curr_q[n])
 
         d_term = np.zeros_like(curr_dq)
@@ -1219,7 +1155,7 @@ class BulletRobot(BulletObject):
             tau (float | np.ndarray, optional): Feedforward torque commands. Defaults to 0.
         """
         if actuated_joint_names is None:
-            actuated_joint_names = self.joints_info.actuated_joint_names
+            actuated_joint_names = self.actuated_joint_names
         jids = self.get_joint_ids(actuated_joint_names)
 
         if self._in_torque_mode:
