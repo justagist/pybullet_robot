@@ -279,7 +279,7 @@ class PybulletIKInterface:
             frame_2_pos_in_frame_1=frame_com_pose[0],
             frame_2_quat_in_frame_1=frame_com_pose[1],
         )
-        self._frame_constraints[frame_name] = pb.createConstraint(
+        self._point_constraints[frame_name] = pb.createConstraint(
             parentBodyUniqueId=self._robot.robot_id,
             parentLinkIndex=frame_id,
             childBodyUniqueId=-1,  # world
