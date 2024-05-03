@@ -10,7 +10,7 @@ AWESOME_ROBOTS: List[str] = _AR_DESCRIPTIONS.keys()
 """List of all available robots from the Awesome Robots List that can be used."""
 
 
-def get_robot_description_urdf(
+def get_urdf_from_awesome_robot_descriptions(
     robot_description_pkg_name: str,
 ) -> str:
     """Get robot urdf for the specified robot description package.

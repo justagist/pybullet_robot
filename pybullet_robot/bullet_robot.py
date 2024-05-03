@@ -27,6 +27,38 @@ def wrap_angle(angle: float | np.ndarray) -> float | np.ndarray:
     return (angle + np.pi) % (2 * np.pi) - np.pi
 
 
+def fix_pb_link_mass_inertia(
+    body_id: int,
+    cid: int = 0,
+    mass: float = 1e-9,
+    local_inertia_diagonal: float = (1e-9, 1e-9, 1e-9),
+):
+    """Fix pybullet virtual links.
+
+    When loading urdf, pybullet assigned default value for link with no inertial (default value
+    mass=1, localinertiadiagonal = 1,1,1; identity local inertial frame). This function fixes
+    the link inertial values to the given mass and local_inertia_diagonal; small values by default.
+
+    Args:
+        body_id (int): Pybullet object ID
+        cid (int, optional): Pybullet physics client ID. Defaults to 0.
+        mass (float, optional): Virtual mass to assign to virtual link. Defaults to 1e-9.
+        local_inertia_diagonal (float, optional): Values to assign to inertia matrix diagonals for
+            virtual links. Defaults to (1e-9, 1e-9, 1e-9).
+    """
+    link_ids = [-1] + [-1] + list(range(pb.getNumJoints(body_id, physicsClientId=cid)))
+    for link_id in link_ids:
+        link_info = pb.getDynamicsInfo(body_id, link_id, physicsClientId=cid)
+        if link_info[0] == 1.0 and link_info[2] == (1.0, 1.0, 1.0):
+            pb.changeDynamics(
+                bodyUniqueId=body_id,
+                linkIndex=link_id,
+                mass=mass,
+                localInertiaDiagonal=local_inertia_diagonal,
+                physicsClientId=cid,
+            )
+
+
 @dataclass
 class BulletJointInfo:
     """Container holding all static information from pybullet's getJointInfo for a single joint."""
@@ -224,38 +256,6 @@ class BulletRobotLinksInfo:
         self.link_name_to_info = link_name_to_info.copy()
         self.link_names = link_names.copy()
         self.link_ids = link_ids.copy()
-
-
-def fix_pb_link_mass_inertia(
-    body_id: int,
-    cid: int = 0,
-    mass: float = 1e-9,
-    local_inertia_diagonal: float = (1e-9, 1e-9, 1e-9),
-):
-    """Fix pybullet virtual links.
-
-    When loading urdf, pybullet assigned default value for link with no inertial (default value
-    mass=1, localinertiadiagonal = 1,1,1; identity local inertial frame). This function fixes
-    the link inertial values to the given mass and local_inertia_diagonal; small values by default.
-
-    Args:
-        body_id (int): Pybullet object ID
-        cid (int, optional): Pybullet physics client ID. Defaults to 0.
-        mass (float, optional): Virtual mass to assign to virtual link. Defaults to 1e-9.
-        local_inertia_diagonal (float, optional): Values to assign to inertia matrix diagonals for
-            virtual links. Defaults to (1e-9, 1e-9, 1e-9).
-    """
-    link_ids = [-1] + [-1] + list(range(pb.getNumJoints(body_id, physicsClientId=cid)))
-    for link_id in link_ids:
-        link_info = pb.getDynamicsInfo(body_id, link_id, physicsClientId=cid)
-        if link_info[0] == 1.0 and link_info[2] == (1.0, 1.0, 1.0):
-            pb.changeDynamics(
-                bodyUniqueId=body_id,
-                linkIndex=link_id,
-                mass=mass,
-                localInertiaDiagonal=local_inertia_diagonal,
-                physicsClientId=cid,
-            )
 
 
 class BulletObject(BulletRobotJointsInfo, BulletRobotLinksInfo):
@@ -1144,6 +1144,9 @@ class BulletRobot(BulletObject):
     ):
         """Set PVT-PD command for the robot.
         (Position-velocity-torque + PD gains)
+
+        NOTE: only valid if the robot was instantiated in torque mode (use
+        `enable_torque_mode=True` during construction.
 
         Args:
             actuated_joint_names (List[str], optional): List of joint names to control.
