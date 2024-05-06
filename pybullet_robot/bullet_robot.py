@@ -513,7 +513,7 @@ class BulletRobot(BulletObject):
             self.actuated_joint_lower_limits,
         )
         print(
-            "joint higher limits:   ",
+            "joint upper limits:   ",
             len(self.actuated_joint_upper_limits),
             self.actuated_joint_upper_limits,
         )
@@ -935,6 +935,10 @@ class BulletRobot(BulletObject):
                         physicsClientId=self.cid,
                     )
 
+    def get_physics_parameters(self) -> Dict[str, Any]:
+        """Get all values from pybullet's getPhysicsEngineParameters API."""
+        return pb.getPhysicsEngineParameters(physicsClientId=self.cid)
+
     def get_robot_states(
         self, actuated_joint_names: List[str] = None, ee_names: List[str] = None
     ) -> Dict[str, Any]:
@@ -1096,6 +1100,9 @@ class BulletRobot(BulletObject):
         actuated_joint_names: List[str] = None,
         vels: np.ndarray = None,
     ):
+        kwargs = {}
+        if vels is not None:
+            kwargs["targetVelocities"] = vels
         if actuated_joint_names is None:
             actuated_joint_names = self.actuated_joint_names
         jids = self.get_joint_ids(actuated_joint_names)
@@ -1105,8 +1112,8 @@ class BulletRobot(BulletObject):
             jids,
             controlMode=pb.POSITION_CONTROL,
             targetPositions=cmd,
-            targetVelocities=vels,
             physicsClientId=self.cid,
+            **kwargs,
         )
 
     def compute_joint_pd_error(

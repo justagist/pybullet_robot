@@ -86,7 +86,7 @@ class PybulletIKInterface:
     def __init__(
         self,
         urdf_path: str,
-        floating_base: bool = True,
+        floating_base: bool = False,
         frames_to_track_pose: List[str] = None,
         frames_to_track_position: List[str] = None,
         starting_base_position: Vector3D = np.zeros(3),
@@ -97,6 +97,7 @@ class PybulletIKInterface:
         visualise: bool = False,
         disable_gravity: bool = False,
         update_rate: float = 500,
+        cid: int = None,
     ):
         """Compute IK solutions for provided end-effector references for multi-end-effector robots
         using physics engine...
@@ -110,7 +111,7 @@ class PybulletIKInterface:
         Args:
             urdf_path (str): Path to urdf of the robot.
             floating_base (bool, optional): Whether the robot has fixed base or floating base.
-                Defaults to True.
+                Defaults to False.
             frames_to_track_pose (List[str], optional): Names of links to be tracked using target
                 pose (position and orientation). These can also be added later using
                 `add_frame_task`. Defaults to None.
@@ -125,7 +126,7 @@ class PybulletIKInterface:
                 robot. Defaults to None.
             joint_names_order (List[str], optional): Order of joint names to be used. This will be
                 the order of the output of the IK as well. Defaults to None (use default order from
-                PybulletSimulatorInterface instance when loading this urdf).
+                BulletRobot instance when loading this urdf).
             run_async (bool, optional): If True, will run step simulation for this simulation in a
                 separete thread at the frequency specified in `update_rate`.
             visualise (bool, optional): If True, will create a GUI instance of the simulated world.
@@ -134,9 +135,13 @@ class PybulletIKInterface:
             update_rate (float, optional): The rate (Hz) at which the physics simulation step
                 should be called. Only valid if `run_async` is True. Defaults to 500. (uses system
                 clock)
+            cid (int, optional): Physics client id of pybullet physics engine (if already running).
+                If None provided, will create a new physics GUI instance. Defaults to None.
         """
-
-        self.cid = pb.connect(pb.GUI if visualise else pb.DIRECT)
+        if not run_async and visualise and cid is not None:
+            self.cid = cid
+        else:
+            self.cid = pb.connect(pb.GUI if visualise else pb.DIRECT)
 
         self._robot = BulletRobot(
             urdf_path=urdf_path,
