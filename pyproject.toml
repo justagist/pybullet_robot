@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pybullet-robot"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["JustaGist <mail@saifsidhik.page>"]
 readme = "README.md"
@@ -10,6 +10,7 @@ python = ">=3.10"
 pybullet = ">3.1"
 robot-descriptions = ">=1.10.0"
 numpy = "*"
+scipy = "^1.13.0"
 
 [tool.poetry.group.docs]
 optional = true
