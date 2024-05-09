@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pybullet-robot"
-version = "0.0.1"
+version = "0.1.0"
 description = ""
 authors = ["JustaGist <mail@saifsidhik.page>"]
 readme = "README.md"
