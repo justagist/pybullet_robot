@@ -1,7 +1,8 @@
 [project]
 name = "pybullet_robot"
-version = "0.1.1"
+version = "0.1.2"
 description = "A generel Python interface class for robot simulations using PyBullet. Also provides an IK interface for multi-end-effector robots that uses bullet physics as a solver."
+readme = "README.md"
 authors = [{ name = "Saif Sidhik", email = "mail@saifsidhik.page" }]
 requires-python = ">= 3.10"
 dependencies = ["robot-descriptions>=1.11.0,<2"]
