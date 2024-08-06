@@ -1,5 +1,17 @@
 # CHANGELOG.md
 
+## [0.1.3] - 2024-08-07
+
+### Adds
+
+- support using pre-loaded robot to create bulletrobot class
+- utility tool for retrieving mjcf files from robot_descriptions.py
+- (experimental): support for mjcf files in bulletrobot
+
+### Fixes
+
+- pypi installation does not work with conda dependencies; use pypi dependencies instead
+
 ## [0.1.2] - 2024-08-06
 
 ### Features

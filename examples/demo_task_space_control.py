@@ -1,7 +1,9 @@
 import time
 import numpy as np
 from pybullet_robot.bullet_robot import BulletRobot
-from pybullet_robot.utils.urdf_utils import get_urdf_from_awesome_robot_descriptions
+from pybullet_robot.utils.robot_loader_utils import (
+    get_urdf_from_awesome_robot_descriptions,
+)
 
 from impedance_controllers import CartesianImpedanceController
 

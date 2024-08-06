@@ -275,6 +275,7 @@ class BulletObject(BulletRobotJointsInfo, BulletRobotLinksInfo):
             cid (int, optional): Pybullet physics client ID. Defaults to 0.
             verbose (bool, optional): Verbosity flag. Defaults to False.
         """
+        print(pb.getBodyInfo(object_id, physicsClientId=cid))
         self.name = pb.getBodyInfo(object_id, physicsClientId=cid)[1].decode()
         self.base_name = pb.getBodyInfo(object_id, physicsClientId=cid)[0].decode()
         self.object_id = object_id
@@ -293,7 +294,9 @@ class BulletRobot(BulletObject):
 
     def __init__(
         self,
-        urdf_path: str,
+        robot_uid: int = None,
+        urdf_path: str = None,
+        mjcf_path: str = None,
         cid: int = None,
         run_async: bool = True,
         ee_names: List[str] = None,
@@ -310,13 +313,20 @@ class BulletRobot(BulletObject):
         """Robot interface utility for a generic robot in pybullet.
 
         Args:
-            urdf_path (str): Path to urdf file of robot.
+            robot_uid (int, optional): If a robot instance is already created in a pybullet
+                instance, you can give the robots object unique id here directly and use
+                all available functions of this class on that robot. In this case, the
+                associated physics client id of the pybullet instance should be provided
+                via the `cid` argument.
+            urdf_path (str, optional): Path to URDF file of the robot to be loaded.
+            mjcf_path (str, optional): Path to MJCF file of the robot to be loaded.
             cid (int, optional): Physics client id of pybullet physics engine (if already running).
                 If None provided, will create a new physics GUI instance. Defaults to None.
             run_async (bool, optional): Whether to run physics in a separate thread. If set to
                 False, step() method has to be called in the main thread. Defaults to True.
             ee_names (List[str], optional): List of end-effectors for the robot. Defaults to None.
             use_fixed_base (bool, optional): Robot will be fixed in the world. Defaults to True.
+                NOTE: Only works if robot is created using the `urdf_path` argument.
             default_joint_positions (List[float], optional): Optional starting values for joints.
                 Defaults to None. NOTE: These values should be in the order of joints in pybullet.
             place_on_ground (bool): If true, the base position height will automatically be adjusted
@@ -326,10 +336,12 @@ class BulletRobot(BulletObject):
                 with the ground object only. It can be with any object in the world.
             default_base_position (Vector3D, optional): Default position of the base of the robot
                 in the world frame during start-up. Note that the height value (z) is only used if
-                'place_on_ground' is set to False. Defaults to np.zeros(3).
+                'place_on_ground' is set to False. Defaults to np.zeros(3). Only used if robot is
+                created using the `urdf_path` argument.
             default_base_orientation (QuatType, optional): Default orientation quaternion in the
                 world frame for the base of the robot during start-up. Defaults to
-                np.array([0, 0, 0, 1]).
+                np.array([0, 0, 0, 1]). Only used if robot is created using the `urdf_path`
+                argument.
             enable_torque_mode (bool, optional): Flag to enable effort controlling of the robot
                 (control commands have to be sent continuously to keep the robot from falling).
                 Defaults to True.
@@ -357,13 +369,25 @@ class BulletRobot(BulletObject):
         if self.ee_names is None:
             self.ee_names = []
 
-        self.robot_id = pb.loadURDF(
-            urdf_path,
-            basePosition=self.default_start_pose[0],
-            baseOrientation=self.default_start_pose[1],
-            useFixedBase=use_fixed_base,
-            physicsClientId=self.cid,
-        )
+        self.robot_id: int
+        """The uid of the robot in the physics engine."""
+
+        if robot_uid is not None:
+            self.robot_id = robot_uid
+        elif urdf_path is not None:
+            self.robot_id = pb.loadURDF(
+                urdf_path,
+                basePosition=self.default_start_pose[0],
+                baseOrientation=self.default_start_pose[1],
+                useFixedBase=use_fixed_base,
+                physicsClientId=self.cid,
+            )
+        elif mjcf_path is not None:
+            self.robot_id = pb.loadMJCF(mjcf_path, physicsClientId=self.cid)[0]
+        else:
+            raise ValueError(
+                "Either robot_uid, urdf_path or mjcf_path should be provided."
+            )
 
         super().__init__(object_id=self.robot_id, cid=self.cid)
 
@@ -410,6 +434,7 @@ class BulletRobot(BulletObject):
         )
 
         self.urdf_path = urdf_path
+        self.mjcf_path = mjcf_path
 
         self._in_torque_mode = False
         if place_on_ground:
