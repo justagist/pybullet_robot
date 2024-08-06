@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.4] - 2024-08-07
+
+### Fixes
+
+- pypi installation conflict in numpy versions for pyrcf and pybullet_robot pkgs
+
 ## [0.1.3] - 2024-08-07
 
 ### Adds
