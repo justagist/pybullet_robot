@@ -1,25 +1,24 @@
-[tool.poetry]
-name = "pybullet-robot"
+[project]
+name = "pybullet_robot"
 version = "0.1.1"
-description = ""
-authors = ["JustaGist <mail@saifsidhik.page>"]
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = ">=3.10"
-pybullet = ">3.1"
-robot-descriptions = ">=1.10.0"
-numpy = "*"
-scipy = "^1.13.0"
-
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-sphinxcontrib-napoleon = "*"
-sphinx-rtd-theme = "*"
-sphinx-autoapi = "*"
+description = "A generel Python interface class for robot simulations using PyBullet. Also provides an IK interface for multi-end-effector robots that uses bullet physics as a solver."
+authors = [{ name = "Saif Sidhik", email = "mail@saifsidhik.page" }]
+requires-python = ">= 3.10"
+dependencies = ["robot-descriptions>=1.11.0,<2"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.pypi-dependencies]
+pybullet_robot = { path = ".", editable = true }
+
+[tool.pixi.dependencies]
+python = ">=3.10"
+pybullet = ">=3.25,<4"
+numpy = ">=1.26.4,<2"
+scipy = ">=1.14.0,<2"
