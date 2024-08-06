@@ -1,12 +1,5 @@
 # CHANGELOG.md
 
-## 0.1.2
-
-Features:
-
-- add minimal example on robot loading and writing custom controllers
-- migrate to pixi install
-
 ## 0.1.1
 
 Features:

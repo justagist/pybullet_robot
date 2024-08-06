@@ -576,9 +576,9 @@ packages:
   timestamp: 1697298309816
 - kind: pypi
   name: pybullet-robot
-  version: 0.1.2
+  version: 0.1.1
   path: .
-  sha256: 66ff9d537b16f2b132303468401629360f1595f0f00a480d59e577ce313afe2f
+  sha256: 073f3e0406278a335223ae9319c75d539c79927da7ab0af034f38aa9ced42007
   requires_dist:
   - robot-descriptions>=1.11.0,<2
   requires_python: '>=3.10'
