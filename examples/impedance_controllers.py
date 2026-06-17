@@ -86,28 +86,3 @@ class CartesianImpedanceController:
         )
         # joint torques to be commanded
         return tau, error
-
-
-class JointImpedanceController:
-    """Simplified PD control for end-effector tracking."""
-
-    def __init__(self, robot: BulletRobot, kp: np.array, kd: np.ndarray):
-
-        self._robot = robot
-        self._kp = kp
-        self._kd = kd
-        self._goal_joint_pos: np.ndarray = None
-
-    def set_target(self, goal_joint_pos: np.ndarray):
-        self._goal_joint_pos = goal_joint_pos
-
-    def compute_cmd(self):
-        curr_joint_pos = self._robot.get_actuated_joint_positions()
-        curr_joint_vel = self._robot.get_actuated_joint_velocities()
-
-        delta_pos = self._goal_joint_pos - curr_joint_pos
-        # Desired joint effort commands computed using PD law
-        tau = self._kp * delta_pos - self._kd * curr_joint_vel
-
-        # joint torques to be commanded
-        return tau, np.linalg.norm(delta_pos)

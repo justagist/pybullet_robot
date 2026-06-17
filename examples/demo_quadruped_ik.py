@@ -23,6 +23,8 @@ from pybullet_robot.utils.robot_loader_utils import (
     get_urdf_from_awesome_robot_descriptions,
 )
 
+from demo_utils import add_ground, prettify_gui
+
 FEET = ["FR_foot", "FL_foot", "RR_foot", "RL_foot"]
 STAND_HEIGHT = 0.3
 
@@ -40,6 +42,8 @@ def main():
         disable_gravity=True,
     )
     cid = ik.cid
+    add_ground(cid)  # visual-only ground at the feet level; won't interfere with IK
+    prettify_gui(cid, camera_distance=1.4, camera_target=(0.0, 0.0, 0.2))
     time.sleep(0.6)  # let the solver settle into the standing posture
 
     body_home, body_ori = ik.get_frame_target("trunk")

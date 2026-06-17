@@ -14,6 +14,7 @@ from pybullet_robot.utils.robot_loader_utils import (
 )
 
 from impedance_controllers import CartesianImpedanceController
+from demo_utils import add_ground, prettify_gui
 
 NEUTRAL_JOINT_POS = [
     -0.017792060227770554,
@@ -46,7 +47,11 @@ if __name__ == "__main__":
         enable_torque_mode=True,  # enable to be able to use torque control
         ee_names=["panda_hand"],
         run_async=False,  # set to False to enable stepping simulation manually
+        place_on_ground=False,
+        load_ground_plane=False,  # we add a clean ground below
     )
+    add_ground(robot.cid, color=[0.18, 0.19, 0.22, 1.0])  # dark floor for contrast
+    prettify_gui(robot.cid, camera_target=(0.35, 0.0, 0.5), keep_panel=False)
 
     controller = CartesianImpedanceController(
         robot=robot,

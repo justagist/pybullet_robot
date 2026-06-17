@@ -28,6 +28,8 @@ from pybullet_robot.utils.robot_loader_utils import (
     get_urdf_from_awesome_robot_descriptions,
 )
 
+from demo_utils import add_ground, prettify_gui
+
 EE_LINK = "iiwa_link_ee"
 
 
@@ -41,6 +43,8 @@ def main():
         update_rate=500,
     )
     cid = ik.cid
+    add_ground(cid)  # visual-only, won't interfere with the IK constraints
+    prettify_gui(cid, camera_distance=2.0, camera_target=(0.0, 0.0, 0.8))
     time.sleep(0.5)  # let the background solver settle at the home pose
 
     home_pos, home_ori = ik.get_frame_target(EE_LINK)

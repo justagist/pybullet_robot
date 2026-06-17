@@ -20,6 +20,8 @@ from pybullet_robot.utils.robot_loader_utils import (
     get_urdf_from_awesome_robot_descriptions,
 )
 
+from demo_utils import add_ground, prettify_gui
+
 
 def main():
     robot = BulletRobot(
@@ -27,9 +29,12 @@ def main():
         ee_names=["iiwa_link_ee"],
         run_async=False,  # step the simulation manually
         place_on_ground=False,
+        load_ground_plane=False,  # we add a clean ground below
         verbose=True,  # prints the full robot info table on construction
     )
     robot.set_position_control_mode()
+    add_ground(robot.cid)
+    prettify_gui(robot.cid, camera_target=(0.0, 0.0, 0.6), keep_panel=False)
 
     n = robot.num_actuated_joints
     home = robot.get_actuated_joint_positions().copy()

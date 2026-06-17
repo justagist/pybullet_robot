@@ -26,6 +26,8 @@ from pybullet_robot.utils.robot_loader_utils import (
     get_urdf_from_awesome_robot_descriptions,
 )
 
+from demo_utils import add_ground, prettify_gui
+
 EE_LINK = "iiwa_link_ee"
 
 
@@ -52,9 +54,12 @@ def main():
         ee_names=[EE_LINK],
         run_async=False,
         place_on_ground=False,
+        load_ground_plane=False,  # we add a clean ground below
         verbose=False,
     )
     robot.set_position_control_mode()
+    add_ground(gui_cid)
+    prettify_gui(gui_cid, camera_distance=2.0, camera_target=(0.0, 0.0, 0.8))
     print(
         f"\nIK solver client id: {ik.cid} (headless) | controlled robot client id: {robot.cid} (GUI)"
     )
