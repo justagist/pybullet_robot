@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pybullet_robot"
-version = "0.2.1"
+version = "0.2.2"
 description = "A general Python interface class for robot simulations using PyBullet. Also provides an IK interface for multi-end-effector robots that uses bullet physics as a solver."
 readme = "README.md"
 license = "MIT"

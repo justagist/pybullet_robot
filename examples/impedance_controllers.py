@@ -11,7 +11,9 @@ def orientation_error(goal_quat: np.ndarray, curr_quat: np.ndarray) -> np.ndarra
     Jacobian, so it can be used directly as a moment in a Cartesian impedance law. (A naive
     difference of Euler/RPY angles is NOT consistent and leads to instability.)
     """
-    return (Rotation.from_quat(goal_quat) * Rotation.from_quat(curr_quat).inv()).as_rotvec()
+    return (
+        Rotation.from_quat(goal_quat) * Rotation.from_quat(curr_quat).inv()
+    ).as_rotvec()
 
 
 class CartesianImpedanceController:

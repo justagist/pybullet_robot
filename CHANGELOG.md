@@ -1,13 +1,28 @@
 # CHANGELOG.md
 
+## [0.2.2] - 2026-06-17
+
+### Added
+
+- `BulletRobot.get_gravity_compensation_torques()` for torque/impedance control.
+- Example demos: joint-space position control (`demo_joint_position_control.py`), interactive
+  single-arm IK (`demo_ik_interface.py`), headless IK with control in a separate simulation
+  (`demo_ik_headless_control.py`), and quadruped whole-body multi-end-effector IK
+  (`demo_quadruped_ik.py`), plus an `examples/` README.
+
+### Fixed
+
+- `PybulletIKInterface` now disables the default joint motors so the tracking constraints can
+  actually move the robot (previously the robot would not move towards targets).
+- Task-space control example: gravity compensation, corrected nullspace projection, and stable
+  orientation/joint-space damping.
+
 ## [0.2.1] - 2026-06-17
 
 ### Changed
 
 - Fixed minor bugs and documentation typos.
 - Update ci action versions.
-
-# CHANGELOG.md
 
 ## [0.2.0] - 2026-06-17
 
@@ -18,7 +33,7 @@
 
 ### Added
 
-- CI workflow running an install + import smoke test across Python 3.10–3.12 and a build/metadata check.
+- CI workflow running an install + import smoke test across Python 3.10-3.12 and a build/metadata check.
 - `.devcontainer` for a reproducible development environment.
 
 ### Removed

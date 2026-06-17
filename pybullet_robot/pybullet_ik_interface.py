@@ -15,8 +15,6 @@ from scipy.spatial.transform import Rotation
 
 from .bullet_robot import BulletRobot, QuatType, Vector3D
 
-# pylint: disable = I1101
-
 
 def _quat_error(quat1: QuatType, quat2: QuatType) -> float:
     return (Rotation.from_quat(quat1) * Rotation.from_quat(quat2).inv()).magnitude()
@@ -155,6 +153,17 @@ class PybulletIKInterface:
             default_base_orientation=starting_base_orientation,
             use_fixed_base=(not floating_base),
             verbose=False,
+        )
+
+        # Disable the default joint motors so the tracking constraints can freely move the robot.
+        # The "IK" is solved by forward-simulating these constraints, which only works if the
+        # joints are not being held in place by pybullet's default position/velocity motors.
+        pb.setJointMotorControlArray(
+            self._robot.robot_id,
+            self._robot.actuated_joint_ids,
+            pb.VELOCITY_CONTROL,
+            forces=[0.0] * self._robot.num_actuated_joints,
+            physicsClientId=self.cid,
         )
 
         if disable_gravity:
@@ -595,7 +604,7 @@ class PybulletIKInterface:
                 )
                 self._run_thread.join()
                 logging.info(
-                    "%s: Succesfully closed IK simulation thread.",
+                    "%s: Successfully closed IK simulation thread.",
                     self.__class__.__name__,
                 )
         self._robot.shutdown()

@@ -40,7 +40,6 @@ TRAJ_RADIUS = 0.12  # meters
 TRAJ_PERIOD = 6.0  # seconds per revolution
 
 if __name__ == "__main__":
-
     robot = BulletRobot(
         urdf_path=get_urdf_from_awesome_robot_descriptions("panda_description"),
         default_joint_positions=NEUTRAL_JOINT_POS,
