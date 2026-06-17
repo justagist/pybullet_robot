@@ -1,6 +1,7 @@
 # PyBullet Robot
 
-[![PyPI version](https://badge.fury.io/py/pybullet-robot.svg)](https://badge.fury.io/py/pybullet-robot)
+[![PyPI version](https://img.shields.io/pypi/v/pybullet-robot)](https://pypi.org/project/pybullet-robot/)
+[![CI](https://github.com/justagist/pybullet_robot/actions/workflows/ci.yml/badge.svg)](https://github.com/justagist/pybullet_robot/actions/workflows/ci.yml)
 
 This package provides:
 
