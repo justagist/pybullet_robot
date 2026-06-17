@@ -10,9 +10,9 @@ import numpy as np
 # pylint: disable=I1101, R0914, C0302, R0902, R0904, R0913, C0103, C0116
 
 QuatType: TypeAlias = np.ndarray
-"""Numpy array representating quaternion in format [x,y,z,w]"""
+"""Numpy array representing a quaternion in format [x,y,z,w]"""
 Vector3D: TypeAlias = np.ndarray
-"""Numpy array representating 3D cartesian vector in format [x,y,z]"""
+"""Numpy array representing a 3D cartesian vector in format [x,y,z]"""
 
 
 def wrap_angle(angle: float | np.ndarray) -> float | np.ndarray:
@@ -31,7 +31,7 @@ def fix_pb_link_mass_inertia(
     body_id: int,
     cid: int = 0,
     mass: float = 1e-9,
-    local_inertia_diagonal: float = (1e-9, 1e-9, 1e-9),
+    local_inertia_diagonal: Tuple[float, float, float] = (1e-9, 1e-9, 1e-9),
 ):
     """Fix pybullet virtual links.
 
@@ -46,7 +46,7 @@ def fix_pb_link_mass_inertia(
         local_inertia_diagonal (float, optional): Values to assign to inertia matrix diagonals for
             virtual links. Defaults to (1e-9, 1e-9, 1e-9).
     """
-    link_ids = [-1] + [-1] + list(range(pb.getNumJoints(body_id, physicsClientId=cid)))
+    link_ids = [-1] + list(range(pb.getNumJoints(body_id, physicsClientId=cid)))
     for link_id in link_ids:
         link_info = pb.getDynamicsInfo(body_id, link_id, physicsClientId=cid)
         if link_info[0] == 1.0 and link_info[2] == (1.0, 1.0, 1.0):
@@ -104,7 +104,7 @@ class BulletRobotJointsInfo:
     actuated_joint_upper_limits: Final[List[float]]
     continuous_joint_names: Final[List[str]]
     """Pybullet joint names of continuous joints only."""
-    continuous_joint_ids: Final[List[str]]
+    continuous_joint_ids: Final[List[int]]
     """Pybullet joint ids of continuous joints only."""
 
     def __init__(self, object_id: int, cid: int = 0):
@@ -241,7 +241,7 @@ class BulletRobotLinksInfo:
             link_name_to_info[link_name] = BulletLinkInfo(
                 mass=link_info_tuple[0],
                 lateral_friction=link_info_tuple[1],
-                local_inertia_diagonal=[2],
+                local_inertia_diagonal=link_info_tuple[2],
                 local_inertial_pos=link_info_tuple[3],
                 local_inertial_ori=link_info_tuple[4],
                 restitution=link_info_tuple[5],
@@ -273,16 +273,14 @@ class BulletObject(BulletRobotJointsInfo, BulletRobotLinksInfo):
         Args:
             object_id (int): Pybullet object ID
             cid (int, optional): Pybullet physics client ID. Defaults to 0.
-            verbose (bool, optional): Verbosity flag. Defaults to False.
         """
-        print(pb.getBodyInfo(object_id, physicsClientId=cid))
         self.name = pb.getBodyInfo(object_id, physicsClientId=cid)[1].decode()
         self.base_name = pb.getBodyInfo(object_id, physicsClientId=cid)[0].decode()
         self.object_id = object_id
         BulletRobotJointsInfo.__init__(self, object_id=object_id, cid=cid)
         BulletRobotLinksInfo.__init__(self, object_id=object_id, cid=cid)
         self.mass = np.sum(
-            self.link_name_to_info[name].mass for name in self.link_names
+            [self.link_name_to_info[name].mass for name in self.link_names]
         )
 
 
@@ -344,7 +342,7 @@ class BulletRobot(BulletObject):
                 argument.
             enable_torque_mode (bool, optional): Flag to enable effort controlling of the robot
                 (control commands have to be sent continuously to keep the robot from falling).
-                Defaults to True.
+                Defaults to False.
             verbose (bool, optional): Verbosity flag for debugging robot info during construction.
                 Defaults to True.
             load_ground_plane (bool, optional): If set to True, will load a ground plane in the XY
@@ -509,7 +507,7 @@ class BulletRobot(BulletObject):
         print(
             "All joints:            ",
             len(self.joint_name_to_info.keys()),
-            len(self.joint_name_to_info.keys()),
+            list(self.joint_name_to_info.keys()),
         )
         print(
             "Actuated joints:       ",
@@ -616,7 +614,7 @@ class BulletRobot(BulletObject):
         default_position: Vector3D = None,
         default_orientation: QuatType = None,
     ):
-        pb.setRealTimeSimulation(0)
+        pb.setRealTimeSimulation(0, physicsClientId=self.cid)
         in_collision = True
         if default_position is None:
             default_position = [
@@ -753,7 +751,7 @@ class BulletRobot(BulletObject):
         return self.joint_id_to_name[joint_id]
 
     def get_joint_id(self, joint_name: str) -> int:
-        """Get the joint id of the specied joint.
+        """Get the joint id of the specified joint.
 
         Args:
             joint_name (str): Name of joint.
@@ -764,7 +762,7 @@ class BulletRobot(BulletObject):
         return self.joint_name_to_index[joint_name]
 
     def get_joint_ids(self, joint_names: List[str]) -> List[int]:
-        """Get the joint ids of the specied joints.
+        """Get the joint ids of the specified joints.
 
         Args:
             joint_names (List[str]): Joint names.
@@ -786,7 +784,7 @@ class BulletRobot(BulletObject):
         return self.link_id_to_name[link_id]
 
     def get_link_id(self, link_name: str) -> int:
-        """Get the link id of the specied link.
+        """Get the link id of the specified link.
 
         Args:
             link_name (str): Name of link.
@@ -797,6 +795,7 @@ class BulletRobot(BulletObject):
         return self.link_name_to_index[link_name]
 
     def get_base_com_position(self) -> Vector3D:
+        """Get the world-frame position of the robot base's centre of mass."""
         world_trans_com = self.get_base_pose()
 
         com_trans_local = pb.invertTransform(
@@ -814,6 +813,7 @@ class BulletRobot(BulletObject):
         return np.array(world_trans_local[0])
 
     def get_base_pose(self) -> Tuple[Vector3D, QuatType]:
+        """Get the world-frame base pose as (position, orientation quaternion [x,y,z,w])."""
         p, q = pb.getBasePositionAndOrientation(self.robot_id, physicsClientId=self.cid)
         if np.isnan(q[0]):
             # BUG: occasional nans in quaternion retrieved from pybullet
@@ -822,6 +822,7 @@ class BulletRobot(BulletObject):
         return np.array(p), np.array(q)
 
     def get_base_velocity(self) -> Tuple[Vector3D, Vector3D]:
+        """Get the world-frame base velocity as (linear velocity, angular velocity)."""
         lin, ang = pb.getBaseVelocity(self.robot_id, physicsClientId=self.cid)
         return np.array(lin), np.array(ang)
 
@@ -849,6 +850,7 @@ class BulletRobot(BulletObject):
     def get_actuated_joint_positions(
         self, actuated_joint_names: List[str] = None
     ) -> np.ndarray:
+        """Get current positions of the actuated joints (defaults to all, in default order)."""
         if actuated_joint_names is None:
             actuated_joint_names = self.actuated_joint_names
         return self.get_joint_states(
@@ -858,6 +860,7 @@ class BulletRobot(BulletObject):
     def get_actuated_joint_velocities(
         self, actuated_joint_names: List[str] = None
     ) -> np.ndarray:
+        """Get current velocities of the actuated joints (defaults to all, in default order)."""
         if actuated_joint_names is None:
             actuated_joint_names = self.actuated_joint_names
         return self.get_joint_states(
@@ -867,6 +870,7 @@ class BulletRobot(BulletObject):
     def get_actuated_joint_torques(
         self, actuated_joint_names: List[str] = None
     ) -> np.ndarray:
+        """Get current efforts of the actuated joints (defaults to all, in default order)."""
         if actuated_joint_names is None:
             actuated_joint_names = self.actuated_joint_names
         return self.get_joint_states(
@@ -874,6 +878,16 @@ class BulletRobot(BulletObject):
         )[2]
 
     def get_jacobian(self, ee_link_name: str, joint_angles=None) -> np.ndarray:
+        """Compute the 6xN geometric Jacobian (linear stacked over angular) for the given link.
+
+        Args:
+            ee_link_name (str): Name of the link to compute the Jacobian for.
+            joint_angles (np.ndarray, optional): Joint configuration to evaluate at. Defaults to
+                None (use the current actuated joint positions).
+
+        Returns:
+            np.ndarray: 6xN Jacobian matrix.
+        """
         if joint_angles is None:
             joint_angles = self.get_actuated_joint_positions()
 
@@ -890,12 +904,14 @@ class BulletRobot(BulletObject):
         return np.vstack([np.array(linear_jacobian), np.array(angular_jacobian)])
 
     def get_link_pose(self, link_id: int) -> Tuple[Vector3D, QuatType]:
+        """Get the world-frame link pose as (position, orientation quaternion). -1 for base."""
         if link_id == -1:
             return self.get_base_pose()
         p, o = pb.getLinkState(self.robot_id, link_id, physicsClientId=self.cid)[4:6]
         return np.array(p), np.array(o)
 
     def get_link_velocity(self, link_id: int) -> Tuple[Vector3D, Vector3D]:
+        """Get the world-frame link velocity as (linear velocity, angular velocity)."""
         link_state = pb.getLinkState(
             self.robot_id, link_id, computeLinkVelocity=1, physicsClientId=self.cid
         )
@@ -903,6 +919,7 @@ class BulletRobot(BulletObject):
         return np.asarray(link_state[6]), np.asarray(link_state[7])
 
     def get_link_com_pose(self, link_id: int) -> Tuple[Vector3D, QuatType]:
+        """Get the world-frame pose of the link's centre of mass as (position, orientation)."""
         if link_id == -1:
             # NOTE: probably not valid for base
             return self.get_base_com_position(), self.get_base_pose()[1]
@@ -910,6 +927,15 @@ class BulletRobot(BulletObject):
         return np.array(p), np.array(o)
 
     def get_ee_contact_states(self, ee_names: List[str] = None) -> np.ndarray:
+        """Get binary contact states (1=contact, 0=no contact) for the given end-effectors.
+
+        Args:
+            ee_names (List[str], optional): End-effector link names. Defaults to None (uses the
+                end-effectors specified during construction).
+
+        Returns:
+            np.ndarray: Array of binary contact states, one per end-effector.
+        """
         if ee_names is None:
             ee_names = self.ee_names
         return self.get_contact_states_of_links(
@@ -1029,8 +1055,9 @@ class BulletRobot(BulletObject):
             joint_ids (List[int], Optional): List of joint ids (optional)
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray]: joint positions, joint velocities, measured
-                joint force-torque values (if FT sensor enabled for the joint), joint efforts.
+            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: joint positions, joint
+                velocities, measured joint force-torque values (if FT sensor enabled for the
+                joint), joint efforts.
         """
         if joint_ids is None:
             joint_ids = self.actuated_joint_ids
@@ -1076,6 +1103,13 @@ class BulletRobot(BulletObject):
     def set_joint_velocities(
         self, cmd: np.ndarray, actuated_joint_names: List[str] = None
     ):
+        """Command target velocities for the given actuated joints (velocity control).
+
+        Args:
+            cmd (np.ndarray): Target joint velocities.
+            actuated_joint_names (List[str], optional): Joints to command, in the order of `cmd`.
+                Defaults to None (all actuated joints).
+        """
         # NOTE: Not tested
         if actuated_joint_names is None:
             actuated_joint_names = self.actuated_joint_names
@@ -1092,6 +1126,13 @@ class BulletRobot(BulletObject):
     def set_joint_torques(
         self, cmd: np.ndarray, actuated_joint_names: List[str] = None
     ):
+        """Command target torques/efforts for the given actuated joints (torque control).
+
+        Args:
+            cmd (np.ndarray): Target joint torques.
+            actuated_joint_names (List[str], optional): Joints to command, in the order of `cmd`.
+                Defaults to None (all actuated joints).
+        """
         if actuated_joint_names is None:
             actuated_joint_names = self.actuated_joint_names
         jids = self.get_joint_ids(actuated_joint_names)
@@ -1107,6 +1148,13 @@ class BulletRobot(BulletObject):
     def set_joint_positions_delta(
         self, cmd: np.ndarray, actuated_joint_names: List[str] = None
     ):
+        """Send a position-control command to the given actuated joints. (experimental)
+
+        Args:
+            cmd (np.ndarray): Command values.
+            actuated_joint_names (List[str], optional): Joints to command, in the order of `cmd`.
+                Defaults to None (all actuated joints).
+        """
         if actuated_joint_names is None:
             actuated_joint_names = self.actuated_joint_names
         jids = self.get_joint_ids(actuated_joint_names)
@@ -1125,6 +1173,14 @@ class BulletRobot(BulletObject):
         actuated_joint_names: List[str] = None,
         vels: np.ndarray = None,
     ):
+        """Command target positions for the given actuated joints (position control).
+
+        Args:
+            cmd (np.ndarray): Target joint positions.
+            actuated_joint_names (List[str], optional): Joints to command, in the order of `cmd`.
+                Defaults to None (all actuated joints).
+            vels (np.ndarray, optional): Optional target velocities. Defaults to None.
+        """
         kwargs = {}
         if vels is not None:
             kwargs["targetVelocities"] = vels
@@ -1149,6 +1205,21 @@ class BulletRobot(BulletObject):
         Kp: float | np.ndarray,
         Kd: float | np.ndarray,
     ):
+        """Compute a joint-space PD error term: Kp * (q_des - q) + Kd * (dq_des - dq).
+
+        Continuous joints use the wrapped position error. A None target zeroes the corresponding
+        term.
+
+        Args:
+            joint_ids (List[int]): Joints to compute the error for.
+            q_des (np.ndarray): Desired joint positions (or None to skip the position term).
+            dq_des (np.ndarray): Desired joint velocities (or None to skip the velocity term).
+            Kp (float | np.ndarray): Position gain(s).
+            Kd (float | np.ndarray): Velocity gain(s).
+
+        Returns:
+            np.ndarray: The PD error (e.g. feedforward torque) per joint.
+        """
         curr_q, curr_dq, _ = self.get_joint_states(joint_ids=joint_ids)
 
         p_term = np.zeros_like(curr_q)

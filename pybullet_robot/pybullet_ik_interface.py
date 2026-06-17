@@ -40,7 +40,7 @@ class PybulletIKInterface:
     """Compute joint positions for provided end-effector references for multi-end-effector robots
     using physics engine...
 
-    This class doesn't actuatlly solve IK in the traditional sense. Instead each end-effector
+    This class doesn't actually solve IK in the traditional sense. Instead each end-effector
     target is set to the desired pose in the physics world by attaching a constraint (using
     pybullet `createConstraint` API) to the physics. Then "IK solution" is queried by forward
     simulating the world with these constraints and querying the joint states of the robot. This
@@ -69,13 +69,13 @@ class PybulletIKInterface:
         """Output for the `get_ik_solution` method in PybulletIKInterface.
 
         Attributes:
-            success (bool): whether IK solution is reliable (all frame tracking tasks succesful).
+            success (bool): whether IK solution is reliable (all frame tracking tasks successful).
                 Only meaningful if error thresholds are specified in the call to `get_ik_solution`
                 method.
             q (np.ndarray): The output generalised coordinate state (position) of the robot.
             v (np.ndarray): The output generalised velocities of the robot (use with caution. See
                 "Cons" section above.)
-            message (str): Error message, if IK is not succesful.
+            message (str): Error message, if IK is not successful.
         """
 
         success: bool
@@ -102,7 +102,7 @@ class PybulletIKInterface:
         """Compute IK solutions for provided end-effector references for multi-end-effector robots
         using physics engine...
 
-        This class doesn't actuatlly solve IK in the traditional sense. Instead each end-effector
+        This class doesn't actually solve IK in the traditional sense. Instead each end-effector
         target is set to the desired pose in the physics world by attaching a constraint (using
         pybullet `createConstraint` API) to the physics. Then "IK solution" is queried by forward
         simulating the world with these constraints and querying the joint states of the robot.
@@ -128,7 +128,7 @@ class PybulletIKInterface:
                 the order of the output of the IK as well. Defaults to None (use default order from
                 BulletRobot instance when loading this urdf).
             run_async (bool, optional): If True, will run step simulation for this simulation in a
-                separete thread at the frequency specified in `update_rate`.
+                separate thread at the frequency specified in `update_rate`.
             visualise (bool, optional): If True, will create a GUI instance of the simulated world.
                 NOTE: This cannot be done if there is another GUI instance of pybullet already
                 running in the same process. Defaults to False.
@@ -214,9 +214,9 @@ class PybulletIKInterface:
         Args:
             frame_name (str): Name of the link.
         """
-        assert (
-            frame_name not in self._frame_constraints
-        ), f"A frame task for {frame_name} already exists!"
+        assert frame_name not in self._frame_constraints, (
+            f"A frame task for {frame_name} already exists!"
+        )
         frame_id = self._robot.get_link_id(link_name=frame_name)
         frame_pose = self._robot.get_link_pose(link_id=frame_id)
         frame_com_pose = self._robot.get_link_com_pose(link_id=frame_id)
@@ -272,9 +272,9 @@ class PybulletIKInterface:
         Args:
             frame_name (str): Name of the link.
         """
-        assert (
-            frame_name not in self._point_constraints
-        ), f"A frame task for {frame_name} already exists!"
+        assert frame_name not in self._point_constraints, (
+            f"A frame task for {frame_name} already exists!"
+        )
         frame_id = self._robot.get_link_id(link_name=frame_name)
         frame_pose = self._robot.get_link_pose(link_id=frame_id)
         frame_com_pose = self._robot.get_link_com_pose(link_id=frame_id)
@@ -507,14 +507,14 @@ class PybulletIKInterface:
             Solution: Output for the `get_ik_solution` method in PybulletIKInterface. It has the
                 following attributes:
                     success (bool): whether IK solution is reliable (all frame tracking tasks
-                        succesful). Only meaningful if error thresholds are specified in the call
+                        successful). Only meaningful if error thresholds are specified in the call
                         to `get_ik_solution` method.
                     q (np.ndarray): The output generalised coordinate state (position) of the
                         robot. If floating base, this is concatenated base position, base
                         quaternion (x,y,z,w), joint positions. Otherwise, just joint positions.
                     v (np.ndarray): The output generalised velocities of the robot (use with
                         caution. See "Cons" section above.) message (str): Error message, if IK is
-                        not succesful. If floating base, this is concatenated base linear velocity
+                        not successful. If floating base, this is concatenated base linear velocity
                         (in base frame), base angular velocity (base frame), joint velocities.
                         Otherwise, just joint velocities.
         """
@@ -549,13 +549,13 @@ class PybulletIKInterface:
                             stop_simulation=False
                         )
                         for fname, p_error in point_errors.items():
-                            if p_error > pos_error_threshold:
+                            if p_error[0] > pos_error_threshold:
                                 success = False
                                 msg = (
                                     "Position error threshold violated in point tracking task"
                                     f" for {fname}."
                                 )
-                                msg += f" Threshold: {pos_error_threshold}; Error: {p_error}"
+                                msg += f" Threshold: {pos_error_threshold}; Error: {p_error[0]}"
                                 break
                 if success and ori_error_threshold is not None:
                     for fname, f_error in frame_errors.items():
