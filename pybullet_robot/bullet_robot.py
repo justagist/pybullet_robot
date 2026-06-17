@@ -903,6 +903,28 @@ class BulletRobot(BulletObject):
 
         return np.vstack([np.array(linear_jacobian), np.array(angular_jacobian)])
 
+    def get_gravity_compensation_torques(self) -> np.ndarray:
+        """Joint torques that counteract gravity at the current configuration.
+
+        Computed via inverse dynamics with zero velocity and zero acceleration, so the result
+        is the torque needed to hold the robot static against gravity. This is a useful
+        feedforward term for torque/impedance control (otherwise the arm sags under gravity).
+
+        Returns:
+            np.ndarray: Gravity-compensation torque per actuated joint, in the default actuated
+                joint order (`self.actuated_joint_names`).
+        """
+        q = self.get_actuated_joint_positions()
+        n = len(q)
+        tau = pb.calculateInverseDynamics(
+            self.robot_id,
+            q.tolist(),
+            [0.0] * n,
+            [0.0] * n,
+            physicsClientId=self.cid,
+        )
+        return np.asarray(tau)
+
     def get_link_pose(self, link_id: int) -> Tuple[Vector3D, QuatType]:
         """Get the world-frame link pose as (position, orientation quaternion). -1 for base."""
         if link_id == -1:

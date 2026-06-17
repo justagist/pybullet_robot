@@ -1,20 +1,17 @@
 import numpy as np
+from scipy.spatial.transform import Rotation
 from pybullet_robot.bullet_robot import BulletRobot
 
 
 # pylint: disable=C0116
-def quat2rpy(quat: np.ndarray) -> tuple:
-    q1, q2, q3, q0 = quat
-    roll = np.arctan2(
-        2 * ((q2 * q3) + (q0 * q1)), q0**2 - q1**2 - q2**2 + q3**2
-    )  # radians
-    pitch = np.arcsin(2 * ((q1 * q3) - (q0 * q2)))
-    yaw = np.arctan2(2 * ((q1 * q2) + (q0 * q3)), q0**2 + q1**2 - q2**2 - q3**2)
-    return np.array((roll, pitch, yaw))
+def orientation_error(goal_quat: np.ndarray, curr_quat: np.ndarray) -> np.ndarray:
+    """Orientation error as an axis-angle (rotation) vector in the world frame.
 
-
-def wrap_angle(angle: float | np.ndarray) -> float | np.ndarray:
-    return (angle + np.pi) % (2 * np.pi) - np.pi
+    This is the SO(3) error that is consistent with the angular-velocity rows of the geometric
+    Jacobian, so it can be used directly as a moment in a Cartesian impedance law. (A naive
+    difference of Euler/RPY angles is NOT consistent and leads to instability.)
+    """
+    return (Rotation.from_quat(goal_quat) * Rotation.from_quat(curr_quat).inv()).as_rotvec()
 
 
 class CartesianImpedanceController:
@@ -27,13 +24,19 @@ class CartesianImpedanceController:
         kd: np.ndarray,
         null_kp: np.ndarray,
         nullspace_pos_target: np.ndarray,
+        joint_damping: float = 1.0,
     ):
 
         self._robot = robot
-        self._kp = kp
-        self._kd = kd
-        self._null_kp = null_kp
-        self._nullspace_target = nullspace_pos_target
+        self._kp = np.asarray(kp, dtype=float)
+        self._kd = np.asarray(kd, dtype=float)
+        self._null_kp = np.asarray(null_kp, dtype=float)
+        self._nullspace_target = np.asarray(nullspace_pos_target, dtype=float)
+        # Uniform joint-space damping. Damping is applied in joint space (not as a Cartesian
+        # wrench) because the effective rotational inertia about the end-effector axes is tiny;
+        # explicit Cartesian angular damping is discretely unstable on those axes, whereas
+        # joint-space damping is governed by the (larger) mass-matrix diagonal and stays stable.
+        self._joint_damping = joint_damping
         self._goal_pos: np.ndarray = None
         self._goal_ori: np.ndarray = None
 
@@ -42,36 +45,45 @@ class CartesianImpedanceController:
         self._goal_ori = goal_ori
 
     def compute_cmd(self):
-        curr_pos, curr_ori = self._robot.get_link_pose(
-            link_id=self._robot.get_link_id(link_name=self._robot.ee_names[0])
-        )
+        ee_id = self._robot.get_link_id(link_name=self._robot.ee_names[0])
+        curr_pos, curr_ori = self._robot.get_link_pose(link_id=ee_id)
         curr_joint_pos = self._robot.get_actuated_joint_positions()
+        curr_joint_vel = self._robot.get_actuated_joint_velocities()
+
+        jac = self._robot.get_jacobian(ee_link_name=self._robot.ee_names[0])
+        # End-effector twist from the SAME Jacobian used for control (keeps damping consistent).
+        ee_twist = jac.dot(curr_joint_vel)
+        curr_vel = ee_twist[:3]
+
         delta_pos = self._goal_pos - curr_pos
+        delta_ori = orientation_error(self._goal_ori, curr_ori)
 
-        delta_ori = wrap_angle(
-            wrap_angle(quat2rpy(self._goal_ori)) - wrap_angle(quat2rpy(curr_ori))
-        )
-
-        curr_vel, curr_omg = self._robot.get_link_velocity(
-            link_id=self._robot.get_link_id(link_name=self._robot.ee_names[0])
-        )
-        print(wrap_angle(quat2rpy(self._goal_ori)), wrap_angle(quat2rpy(curr_ori)))
-
+        # Cartesian impedance wrench: PD on position, stiffness on orientation. Orientation
+        # damping is handled by the joint-space damping term below (see __init__).
         cmd_force = np.zeros(6)
         cmd_force[:3] = self._kp[:3] * delta_pos - self._kd[:3] * curr_vel
-        cmd_force[3:] = self._kp[3:] * delta_ori - self._kd[3:] * curr_omg
+        cmd_force[3:] = self._kp[3:] * delta_ori
 
         error = np.asarray([np.linalg.norm(delta_pos), np.linalg.norm(delta_ori)])
 
-        jac = self._robot.get_jacobian(ee_link_name=self._robot.ee_names[0])
-        null_space_filter = self._null_kp.dot(
-            np.eye(curr_joint_pos.size) - jac.T.dot(np.linalg.pinv(jac.T, rcond=1e-3))
+        # Nullspace projector: drive joints toward the neutral posture without disturbing the
+        # end-effector task. N = I - J^T (J^T)^+
+        null_proj = np.eye(curr_joint_pos.size) - jac.T.dot(
+            np.linalg.pinv(jac.T, rcond=1e-3)
         )
-        tau = jac.T.dot(cmd_force.reshape([-1, 1])) + null_space_filter.dot(
-            (self._nullspace_target - curr_joint_pos)
+        null_torque = null_proj.dot(
+            self._null_kp * (self._nullspace_target - curr_joint_pos)
+        )
+
+        # task torque + nullspace posture + gravity compensation + joint-space damping
+        tau = (
+            jac.T.dot(cmd_force)
+            + null_torque
+            + self._robot.get_gravity_compensation_torques()
+            - self._joint_damping * curr_joint_vel
         )
         # joint torques to be commanded
-        return tau.flatten(), error
+        return tau, error
 
 
 class JointImpedanceController:
