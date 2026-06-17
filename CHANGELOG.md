@@ -1,5 +1,20 @@
 # CHANGELOG.md
 
+## [1.0.0] - 2026-06-17
+
+First stable release.
+
+### Added
+
+- Test suite (network-free smoke tests for `BulletRobot` and `PybulletIKInterface`).
+- `py.typed` marker so downstream type checkers use the package's type hints (PEP 561).
+- `pybullet_robot.__version__`.
+
+### Changed
+
+- Declared the package production/stable with full trove classifiers and supported Python
+  versions (3.10, 3.11, 3.12).
+
 ## [0.2.2] - 2026-06-17
 
 ### Added
