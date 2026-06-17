@@ -1,5 +1,21 @@
 # CHANGELOG.md
 
+## [0.2.0] - 2026-06-17
+
+### Changed
+
+- Modernised packaging: full project metadata (keywords, classifiers, project URLs) and `[project.optional-dependencies]` (`test`, `dev`) in `pyproject.toml`; explicit `setuptools` package discovery.
+- Releases now publish to PyPI via tag-triggered GitHub Actions using PyPI trusted publishing (OIDC) instead of a stored API token.
+
+### Added
+
+- CI workflow running an install + import smoke test across Python 3.10–3.12 and a build/metadata check.
+- `.devcontainer` for a reproducible development environment.
+
+### Removed
+
+- Removed `pixi` configuration and `pixi.lock`; development now uses a plain `pip install -e ".[dev]"` workflow.
+
 ## [0.1.4] - 2024-08-07
 
 ### Fixes

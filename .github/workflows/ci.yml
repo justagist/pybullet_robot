@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: python -m pip install .[test]
+      - name: Import smoke test
+        run: python -c "import pybullet_robot; from pybullet_robot import BulletRobot, PybulletIKInterface; print('OK', pybullet_robot)"
+      - name: Run tests
+        run: pytest -v
+        if: ${{ hashFiles('tests/**/*.py') != '' }}
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install build
+          python -m build
+      - name: Verify metadata
+        run: |
+          python -m pip install twine
+          python -m twine check dist/*

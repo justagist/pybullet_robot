@@ -1,10 +1,30 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "pybullet_robot"
-version = "0.1.4"
-description = "A generel Python interface class for robot simulations using PyBullet. Also provides an IK interface for multi-end-effector robots that uses bullet physics as a solver."
+version = "0.2.0"
+description = "A general Python interface class for robot simulations using PyBullet. Also provides an IK interface for multi-end-effector robots that uses bullet physics as a solver."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
 authors = [{ name = "Saif Sidhik", email = "mail@saifsidhik.page" }]
-requires-python = ">= 3.10"
+keywords = [
+    "pybullet",
+    "robotics",
+    "simulation",
+    "inverse kinematics",
+    "robot control",
+    "python",
+]
+classifiers = [
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
 dependencies = [
     "robot-descriptions>=1.11.0,<2",
     "numpy>=1.6,<3",
@@ -12,16 +32,15 @@ dependencies = [
     "pybullet>=3.2.6,<4",
 ]
 
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+[project.urls]
+Homepage = "https://github.com/justagist/pybullet_robot"
+"Bug Tracker" = "https://github.com/justagist/pybullet_robot/issues"
+Documentation = "https://github.com/justagist/pybullet_robot/blob/main/README.md"
+"Source Code" = "https://github.com/justagist/pybullet_robot"
 
-[tool.pixi.project]
-channels = ["conda-forge"]
-platforms = ["linux-64"]
+[project.optional-dependencies]
+test = ["pytest"]
+dev = ["pytest", "ruff", "build"]
 
-[tool.pixi.pypi-dependencies]
-pybullet_robot = { path = ".", editable = true }
-
-[tool.pixi.dependencies]
-python = ">=3.10"
+[tool.setuptools.packages.find]
+include = ["pybullet_robot*"]

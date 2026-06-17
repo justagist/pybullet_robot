@@ -11,19 +11,13 @@ updates:
       interval: "monthly"
     groups:
       dev-dependencies:
-        #try to group all development dependencies updates into a single pr
-        patterns:          
-          - "black"
-          - "check-manifest"
-          - "pre-commit"
-          - "pylint"
+        # group development dependency updates into a single PR
+        patterns:
           - "pytest"
-          - "pytest-cov"          
-          - "hypothesis"
           - "ruff"
-          - "coverage"
+          - "build"
       lib-dependencies:
-        #try to group all third party library updates into a single pr
+        # group all third party library updates into a single PR
         patterns:
           - "*"
   - package-ecosystem: github-actions
