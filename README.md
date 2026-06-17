@@ -36,17 +36,6 @@ pip install -e ".[dev]"
 A [dev container](.devcontainer/devcontainer.json) is provided for a reproducible
 environment in VS Code ("Reopen in Container").
 
-### Releasing
-
-Releases are published to PyPI automatically via [GitHub Actions](.github/workflows/publish.yml)
-using PyPI [trusted publishing](https://docs.pypi.org/trusted-publishers/). To cut a release,
-bump `version` in [pyproject.toml](pyproject.toml), then push a matching tag:
-
-```bash
-git tag v0.2.0
-git push origin v0.2.0
-```
-
 ## Usage
 
 (TODO)

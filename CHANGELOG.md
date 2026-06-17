@@ -1,5 +1,14 @@
 # CHANGELOG.md
 
+## [0.2.1] - 2026-06-17
+
+### Changed
+
+- Fixed minor bugs and documentation typos.
+- Update ci action versions.
+
+# CHANGELOG.md
+
 ## [0.2.0] - 2026-06-17
 
 ### Changed
