@@ -1,5 +1,16 @@
 # CHANGELOG.md
 
+## [1.0.1] - 2026-08-05
+
+### Changed
+
+- Relaxed the `robot-descriptions` requirement from `<2` to `<3`. The pin was stale rather than a
+  real incompatibility: the package only uses the description-loader API, which is unchanged
+  across that major bump (verified against robot-descriptions 2.0.0). The old pin made
+  `pybullet_robot` uninstallable alongside packages that require `robot-descriptions>=2` (e.g.
+  `mujoco_robot`), which prevented resolvers such as pixi/uv from solving an environment
+  containing both.
+
 ## [1.0.0] - 2026-06-17
 
 First stable release.
